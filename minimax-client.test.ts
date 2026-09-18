@@ -101,9 +101,9 @@ test("MiniMax adapter refuses oversized context before dispatch", async () => {
 test("adapter accepts MiniMax API keys from env or config.yaml, not OpenAI keys", async () => {
 	const { config } = setup();
 	const withoutLogin = new MiniMaxClient({ env: {}, readFile: () => undefined });
-	await assert.rejects(withoutLogin.preflight(config), /no credentials/);
+	await assert.rejects(withoutLogin.preflight(config), /No credentials for provider minimax/);
 	const openaiOnly = new MiniMaxClient({ env: { OPENAI_API_KEY: "sk-test" }, readFile: () => undefined });
-	await assert.rejects(openaiOnly.preflight(config), /no credentials/);
+	await assert.rejects(openaiOnly.preflight(config), /No credentials for provider minimax/);
 	const withEnv = new MiniMaxClient({ env: { MINIMAX_API_KEY: "mm-test" }, readFile: () => undefined });
 	await withEnv.preflight(config);
 	const withFile = new MiniMaxClient({

@@ -83,11 +83,15 @@ function textResult(text, isError = false) {
 function invokeCli(args) {
 	const cli = resolveWorker();
 	return new Promise((resolvePromise) => {
-		const child = spawn(process.execPath, ["--experimental-strip-types", cli, ...args], {
-			cwd: process.cwd(),
-			env: process.env,
-			stdio: ["ignore", "pipe", "pipe"],
-		});
+		const child = spawn(
+			process.execPath,
+			["--disable-warning=ExperimentalWarning", "--experimental-strip-types", cli, ...args],
+			{
+				cwd: process.cwd(),
+				env: process.env,
+				stdio: ["ignore", "pipe", "pipe"],
+			},
+		);
 		let stdout = "";
 		let stderr = "";
 		child.stdout.on("data", (chunk) => {

@@ -28,6 +28,10 @@ const MINIMAX_MODELS: Omit<CatalogEntry, "provider" | "baseUrl">[] = [
 	{ id: "MiniMax-M3", contextWindow: 512000, maxTokens: 128000 },
 ];
 
+function envVarFor(provider: string): string {
+	return provider === "minimax-cn" ? "MINIMAX_CN_API_KEY" : "MINIMAX_API_KEY";
+}
+
 function catalog(): CatalogEntry[] {
 	return [
 		...MINIMAX_MODELS.map((model) => ({ ...model, provider: "minimax", baseUrl: GLOBAL_BASE })),
@@ -123,7 +127,11 @@ export class MiniMaxClient implements ModelClient {
 		const model = this.findModel(ref);
 		if (!model) throw new Error("Configured model is absent from the installed catalog; use the models command");
 		if (config.limits.maxOutputTokens > model.maxTokens) throw new Error("Output budget exceeds model capability");
-		if (!this.apiKey(ref.provider)) throw new Error("A configured model provider has no credentials");
+		if (!this.apiKey(ref.provider)) {
+			throw new Error(
+				`No credentials for provider ${ref.provider}: set ${envVarFor(ref.provider)} or apiKey in ~/.minimax-code/config.yaml`,
+			);
+		}
 	}
 
 	async complete(request: ModelRequest): Promise<ModelResponse> {
@@ -131,7 +139,11 @@ export class MiniMaxClient implements ModelClient {
 		const model = this.findModel(request.model);
 		if (!model) throw new Error("Unknown model");
 		const key = this.apiKey(request.model.provider);
-		if (!key) throw new Error("A configured model provider has no credentials");
+		if (!key) {
+			throw new Error(
+				`No credentials for provider ${request.model.provider}: set ${envVarFor(request.model.provider)} or apiKey in ~/.minimax-code/config.yaml`,
+			);
+		}
 		const inputBound = Buffer.byteLength(request.system + request.prompt, "utf8") + 8192;
 		if (inputBound + request.maxOutputTokens > model.contextWindow) throw new Error("Model context budget exceeded");
 		const response = await this.fetchImpl(`${model.baseUrl}/v1/messages`, {
