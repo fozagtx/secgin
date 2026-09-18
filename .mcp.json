@@ -2,7 +2,7 @@
 	"mcpServers": {
 		"secgin": {
 			"command": "node",
-			"args": ["./server.mjs"]
+			"args": ["${CLAUDE_PLUGIN_ROOT}/server.mjs"]
 		}
 	}
 }

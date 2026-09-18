@@ -11,7 +11,7 @@ This Skill teaches **the host agent** how to operate the harness. The host is wh
 
 ## First actions
 
-1. Confirm the operator has a real `scope.json` beside a tree they control. Required keys are in the harness README. There is no example target.
+1. Confirm the operator has a real `scope.json` beside a tree they control. Required keys are documented in the README section "Configure a target: scope.json". There is no example target.
 2. Call `harness_models`. Pick **three different catalog models** (recon, hunter, validator). Hunter ≠ validator. Hunt compute is the `{provider,id}` pairs in their `scope.json`.
 3. Call `harness_plan` with their `scope.json`. Fix the scope until it succeeds. Web3 plans must list twelve `hunt:web3:*` cells.
 4. Only then call `harness_run` with `confirmed=true`, their scope, and an output directory **outside** the source root. That run is recon/x-ray → optional fizz → twelve auditor hunts → validate → VVS.
