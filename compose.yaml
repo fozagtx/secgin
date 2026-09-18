@@ -1,0 +1,17 @@
+# Cloudflare nested-containerization tip:
+# an inner unshare/user-namespace sandbox silently fails to start unless these
+# two options are set. Do not drop them when copying this file.
+name: security-harness
+services:
+  harness:
+    image: node:22.19-bookworm
+    working_dir: /work
+    volumes:
+      - .:/work
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
+    command:
+      - node
+      - cli.ts
+      - --help

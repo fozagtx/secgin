@@ -1,0 +1,171 @@
+import { readFile } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
+import { evaluate } from "./evaluate.ts";
+import { inspectNestedRuntime, nestedRuntimeWarning } from "./nested-runtime.ts";
+import { LENSES } from "./prompts.ts";
+import { loadInstalledPashov } from "./pashov.ts";
+import { MiniMaxClient } from "./minimax-client.ts";
+import { writeReports } from "./report.ts";
+import { type HarnessReport, plan, runHarness, runIdentity } from "./runner.ts";
+import { loadSnapshot, parseConfig } from "./scope.ts";
+import { createStageModelPrompt } from "./stage-models.ts";
+import { readRunStatus } from "./status.ts";
+import { RunStore } from "./store.ts";
+import { HARNESS_TOOLS } from "./tools.ts";
+
+const HELP = `JSON worker for the security harness (host-agnostic backbone, not a TUI).
+Install this repository into whichever CLI you use:
+  git clone https://github.com/fozagtx/secgin
+  node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all
+The host agent calls MCP tools harness_models, harness_plan, harness_run, harness_status, harness_evaluate.
+  models                                List catalog model IDs from the worker (offline)
+  plan <scope.json>                      Validate YOUR scope and show planned work (offline)
+  status <output-directory>              Summarize report.json from a finished run (offline)
+  evaluate <report.json> <labels.json>   Score human-reviewed labels for YOUR report (offline)
+  run <scope.json> <output-directory> --allow-remote-models [--keep-models]
+                                        Send the scoped source to the models in YOUR scope.json
+                                        Prompts before recon, hunt, validate and gapfill unless --keep-models
+Repeat the same run command to resume. Changed scope/source/prompts require a new output directory.
+Exit codes: 0 completed, 1 configuration/runtime error, 2 incomplete pipeline.
+If this process is inside Docker, an inner unshare sandbox silently fails unless the container was started with --security-opt seccomp=unconfined --security-opt apparmor=unconfined. Use compose.yaml in this directory.
+No target network requests, shell tools, test execution, transactions or automatic disclosure.
+There is no demo, mock client, or canned target.
+VDH stages (recon, hunt, validate, gapfill, dedup, trace, feedback, report, sibling, wishlist) and VVS stages (dedup, judgment, fixing) are tools the agent may declare at any time. The harness runs them; models cannot execute tools, patches, or tests.
+Load the security-harness Skill from the plugin package.`;
+
+let operation = "command parsing";
+
+async function main(): Promise<void> {
+	const [command, ...args] = process.argv.slice(2);
+	if (!command || command === "--help") {
+		console.log(HELP);
+		return;
+	}
+	if (command === "models" && args.length === 0) {
+		console.log(JSON.stringify(new MiniMaxClient().listModels(), null, 2));
+		return;
+	}
+	if (command === "evaluate" && args.length === 2) {
+		operation = "benchmark label validation";
+		const report: HarnessReport = JSON.parse(await readFile(resolve(args[0]), "utf8"));
+		const labels: unknown = JSON.parse(await readFile(resolve(args[1]), "utf8"));
+		console.log(JSON.stringify(evaluate(report, labels), null, 2));
+		return;
+	}
+	if (command === "status" && args.length === 1) {
+		operation = "run status";
+		console.log(JSON.stringify(await readRunStatus(resolve(args[0])), null, 2));
+		return;
+	}
+	if (
+		!(
+			(command === "plan" && args.length === 1) ||
+			(command === "run" &&
+				(args.length === 3 || (args.length === 4 && args[3] === "--keep-models")) &&
+				args[2] === "--allow-remote-models")
+		)
+	)
+		throw new Error(HELP);
+	const configPath = resolve(args[0]);
+	operation = "scope validation";
+	const config = parseConfig(JSON.parse(await readFile(configPath, "utf8")));
+	operation = "source snapshot validation";
+	const snapshot = await loadSnapshot(config, dirname(configPath));
+	if (command === "plan") {
+		const tasks = plan(config);
+		const nestedRuntime = inspectNestedRuntime();
+		const warning = nestedRuntimeWarning(nestedRuntime);
+		if (warning) console.error(warning);
+		console.log(
+			JSON.stringify(
+				{
+					identity: runIdentity(config, snapshot),
+					snapshot: snapshot.digest,
+					files: snapshot.files.map(({ path, sha256, lines }) => ({ path, sha256, lines })),
+					tools: HARNESS_TOOLS,
+					vdh: {
+						recon: ["recon:architecture", "recon:threats", "recon:invariants", "recon"],
+						hunts: tasks.map(({ id }) => id),
+						then: ["vdh.validate", "vdh.gapfill", "vdh.dedup", "vdh.trace", "vdh.feedback", "vdh.report"],
+						agentDeclared: ["vdh.sibling", "vdh.wishlist"],
+					},
+					vvs: ["vvs.dedup", "vvs.judgment", "vvs.fixing"],
+					pashov: loadInstalledPashov(),
+					pashovMapped: {
+						"x-ray": ["recon:architecture", "recon:threats", "recon:invariants", "recon"],
+						"solidity-auditor": Object.keys(LENSES.web3).map((id) => `hunt:web3:${id}:0`),
+						fizz: config.domains.includes("web3") ? ["pashov.fizz"] : [],
+					},
+					hunts: tasks.map(({ id }) => id),
+					baseCalls: 4 + (config.domains.includes("web3") ? 1 : 0) + tasks.length,
+					maximumTasksIncludingValidation:
+						4 + (config.domains.includes("web3") ? 1 : 0) + tasks.length * (2 + config.limits.maxFindingsPerTask) + 8,
+					hardCallCap: config.limits.maxCalls,
+					nestedRuntime,
+					note: "Pashov x-ray is VDH recon (three passes plus synthesis). Pashov solidity-auditor is twelve web3 hunt cells. Pashov fizz proposes invariant properties and is never executed. Recon may add extra attack-class hunts. Empty cells are gapfilled once. Agents may declare VDH/VVS/Pashov tools at any time; the harness runs them. VVS uses a different model than VDH. Independent validation cannot file findings. Patches are never applied.",
+					warning:
+						"Plan makes no model calls. Scope is an operator attestation, not proof of program authorization.",
+				},
+				null,
+				2,
+			),
+		);
+		return;
+	}
+	const output = resolve(args[1]);
+	operation = "output directory validation";
+	const outputWithinSource = relative(snapshot.root, output);
+	if (
+		!isAbsolute(outputWithinSource) &&
+		outputWithinSource !== ".." &&
+		!outputWithinSource.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)
+	) {
+		throw new Error("Output must be outside the source root");
+	}
+	const client = new MiniMaxClient();
+	operation = "model authorization and credential preflight";
+	await client.preflight(config);
+	operation = "run identity and private database initialization";
+	const store = new RunStore(output, runIdentity(config, snapshot));
+	const keepModels = command === "run" && args[3] === "--keep-models";
+	const tty = Boolean(process.stdin.isTTY);
+	let rl: ReturnType<typeof createInterface> | undefined;
+	const prompt =
+		!keepModels
+			? createStageModelPrompt({
+					listModels: () => client.listModels(),
+					authorize: (model) => client.authorize(model, config),
+					readLine: async () => {
+						rl ??= createInterface({ input: process.stdin, output: process.stderr });
+						return rl.question("> ");
+					},
+					writeLine: (line) => console.error(line),
+					tty,
+				})
+			: undefined;
+	try {
+		operation = "investigation pipeline";
+		const report = await runHarness(config, snapshot, store, client, {
+			prompt,
+			catalog: client.listModels(),
+		});
+		operation = "private report writing";
+		writeReports(output, report);
+		const nestedWarning = nestedRuntimeWarning(report.nestedRuntime);
+		if (nestedWarning) console.error(nestedWarning);
+		console.log(`${report.status}; ${report.candidates.length} candidates; 0 verified findings. Reports: ${output}`);
+		if (report.status === "incomplete") process.exitCode = 2;
+	} finally {
+		rl?.close();
+		store.close();
+	}
+}
+
+main().catch(() => {
+	// Do not print arbitrary provider, file, or JSON-parser errors containing private values.
+	console.error(
+		`Security harness failed during ${operation}. No private error payload was logged. Check the README and private task ledger; use --help for syntax.`,
+	);
+	process.exitCode = 1;
+});

@@ -1,0 +1,9 @@
+{
+	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+	"name": "security-harness",
+	"version": "0.1.0",
+	"description": "Authorized local-source VDH/VVS security research. Host-agnostic Agent Plugins 1.0 package. No canned target.",
+	"repository": "https://github.com/fozagtx/secgin",
+	"license": "MIT",
+	"keywords": ["security", "vdh", "vvs", "mcp", "agent-plugins"]
+}

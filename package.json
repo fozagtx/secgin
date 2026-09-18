@@ -1,0 +1,19 @@
+{
+	"name": "security-harness",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"description": "Host-agnostic VDH/VVS security research plugin. Agent Plugins 1.0 Skill plus MCP.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/fozagtx/secgin.git"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"scripts": {
+		"test": "node --experimental-strip-types --test --test-timeout=30000 *.test.ts",
+		"install-plugin": "node install-plugin.mjs"
+	}
+}

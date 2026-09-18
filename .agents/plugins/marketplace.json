@@ -1,0 +1,20 @@
+{
+	"name": "security-harness",
+	"interface": {
+		"displayName": "Security harness"
+	},
+	"plugins": [
+		{
+			"name": "security-harness",
+			"source": {
+				"source": "local",
+				"path": "./"
+			},
+			"policy": {
+				"installation": "AVAILABLE",
+				"authentication": "ON_INSTALL"
+			},
+			"category": "Security"
+		}
+	]
+}

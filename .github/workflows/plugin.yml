@@ -1,0 +1,30 @@
+name: plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  install-and-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19"
+      - name: Validate Agent Plugins manifests
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('plugin.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('mcp.json','utf8'))"
+          test -f skills/security-harness/SKILL.md
+          test -f server.mjs
+          test -f cli.ts
+      - name: Install cloud copy and list MCP tools
+        env:
+          HOME: ${{ runner.temp }}/home
+          SECURITY_HARNESS_HOME: ${{ runner.temp }}/plugin
+        run: |
+          mkdir -p "$HOME"
+          node install-plugin.mjs --host cloud
+          node scripts/mcp-smoke.mjs

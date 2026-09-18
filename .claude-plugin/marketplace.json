@@ -1,0 +1,13 @@
+{
+	"name": "security-harness",
+	"owner": {
+		"name": "fozagtx"
+	},
+	"plugins": [
+		{
+			"name": "security-harness",
+			"source": "./",
+			"description": "Authorized local-source VDH/VVS security research. No canned target."
+		}
+	]
+}
