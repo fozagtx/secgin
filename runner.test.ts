@@ -48,7 +48,7 @@ function config(overrides: Partial<HarnessConfig> = {}): HarnessConfig {
 }
 
 async function fixture(): Promise<{ directory: string; snapshot: Snapshot }> {
-	const directory = await mkdtemp(path.join(tmpdir(), "security-harness-"));
+	const directory = await mkdtemp(path.join(tmpdir(), "secgin-"));
 	await writeFile(path.join(directory, "target.ts"), source);
 	return { directory, snapshot: await loadSnapshot(config(), directory) };
 }
@@ -438,7 +438,7 @@ test("prompts for a better model before each pending stage and uses the swapped 
 });
 
 test("omits unrelated snapshot files from hunt context instead of stuffing the window", async () => {
-	const directory = await mkdtemp(path.join(tmpdir(), "security-harness-"));
+	const directory = await mkdtemp(path.join(tmpdir(), "secgin-"));
 	try {
 		await writeFile(path.join(directory, "target.ts"), source);
 		await writeFile(path.join(directory, "noise.ts"), `${"padding\n".repeat(900)}export const unused = 1;\n`);
@@ -522,7 +522,7 @@ test("rejects vacuous findings in plain code before a validator ever sees them",
 });
 
 test("trace walks in-snapshot imports into sibling hunts instead of inventing consumer repos", async () => {
-	const directory = await mkdtemp(path.join(tmpdir(), "security-harness-"));
+	const directory = await mkdtemp(path.join(tmpdir(), "secgin-"));
 	try {
 		await writeFile(path.join(directory, "entry.ts"), 'import { ping } from "./util";\nexport function run() { return ping(); }\n');
 		await writeFile(path.join(directory, "util.ts"), "export function ping() { return 1; }\n");

@@ -12,7 +12,7 @@ export interface TaskRecord {
 }
 
 function fail(message: string): never {
-	throw new Error(`Security harness run store: ${message}`);
+	throw new Error(`secgin run store: ${message}`);
 }
 
 function isMissing(error: unknown): boolean {

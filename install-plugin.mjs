@@ -87,7 +87,7 @@ function upsertNamed(list, name, entry) {
 
 function installMinimax() {
 	const dataDir = process.env.MINIMAX_DATA_DIR?.trim() || path.join(homedir(), ".minimax-code");
-	const target = path.join(dataDir, "plugins", "security-harness");
+	const target = path.join(dataDir, "plugins", "secgin");
 	emptyDir(target);
 	copyWorker(target);
 	return [`minimax ${target}`];
@@ -95,15 +95,15 @@ function installMinimax() {
 
 function installCodex() {
 	const codexHome = process.env.CODEX_HOME?.trim() || path.join(homedir(), ".codex");
-	const target = path.join(codexHome, "plugins", "security-harness");
+	const target = path.join(codexHome, "plugins", "secgin");
 	emptyDir(target);
 	copyWorker(target);
 	const marketplacePath =
 		process.env.AGENTS_PLUGINS_MARKETPLACE?.trim() ||
 		path.join(homedir(), ".agents", "plugins", "marketplace.json");
-	const sourcePath = "./.codex/plugins/security-harness";
+	const sourcePath = "./.codex/plugins/secgin";
 	const entry = {
-		name: "security-harness",
+		name: "secgin",
 		source: { source: "local", path: sourcePath },
 		policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
 		category: "Security",
@@ -121,36 +121,36 @@ function installCodex() {
 		marketplace = loaded;
 		if (!Array.isArray(marketplace.plugins)) marketplace.plugins = [];
 	}
-	marketplace.plugins = upsertNamed(marketplace.plugins, "security-harness", entry);
+	marketplace.plugins = upsertNamed(marketplace.plugins, "secgin", entry);
 	writeJson(marketplacePath, marketplace);
 	return [`codex ${target}`, `codex marketplace ${marketplacePath}`];
 }
 
 function installClaude() {
 	const claudeHome = process.env.CLAUDE_CONFIG_DIR?.trim() || path.join(homedir(), ".claude");
-	const target = path.join(claudeHome, "plugins", "security-harness");
+	const target = path.join(claudeHome, "plugins", "secgin");
 	emptyDir(target);
 	copyWorker(target);
 	writeJson(path.join(target, ".claude-plugin", "plugin.json"), {
-		name: "security-harness",
+		name: "secgin",
 		version: "0.1.0",
 		description: "Authorized local-source VDH/VVS security research. No canned target.",
 	});
 	writeJson(path.join(target, ".mcp.json"), {
 		mcpServers: {
-			"security-harness": stdioMcp("./server.mjs"),
+			"secgin": stdioMcp("./server.mjs"),
 		},
 	});
 	const marketplacePath = path.join(claudeHome, "plugins", "marketplace.json");
 	writeJson(marketplacePath, {
-		name: "security-harness-local",
-		plugins: [{ name: "security-harness", source: "./security-harness" }],
+		name: "secgin-local",
+		plugins: [{ name: "secgin", source: "./secgin" }],
 	});
 	return [`claude ${target}`, `claude marketplace ${marketplacePath}`];
 }
 
 function installCloud() {
-	const pluginHome = process.env.SECURITY_HARNESS_HOME?.trim() || path.join(homedir(), ".security-harness");
+	const pluginHome = process.env.SECGIN_HOME?.trim() || path.join(homedir(), ".secgin");
 	emptyDir(pluginHome);
 	copyWorker(pluginHome);
 	const server = path.join(pluginHome, "server.mjs");
@@ -181,7 +181,7 @@ try {
 	const lines = install(parseHost());
 	for (const line of lines) process.stdout.write(`Installed ${line}\n`);
 	process.stdout.write(
-		"Restart the host. Skill: security-harness. MCP: harness_models, harness_plan, harness_run, harness_status, harness_evaluate.\n",
+		"Restart the host. Skill: secgin. MCP: harness_models, harness_plan, harness_run, harness_status, harness_evaluate.\n",
 	);
 	process.stdout.write(
 		"Hunt models come from YOUR scope.json, not from the host CLI. Set keys for the providers in that file.\n",

@@ -152,7 +152,7 @@ async function handle(message) {
 			result: {
 				protocolVersion: message.params?.protocolVersion ?? "2025-06-18",
 				capabilities: { tools: {} },
-				serverInfo: { name: "security-harness", version: "0.1.0" },
+				serverInfo: { name: "secgin", version: "0.1.0" },
 			},
 		};
 	}
@@ -290,7 +290,7 @@ function startHttp() {
 	server.listen(port, bind, () => {
 		const address = server.address();
 		const actual = typeof address === "object" && address ? address.port : port;
-		process.stderr.write(`security-harness mcp http://${bind}:${actual}/mcp\n`);
+		process.stderr.write(`secgin mcp http://${bind}:${actual}/mcp\n`);
 	});
 }
 

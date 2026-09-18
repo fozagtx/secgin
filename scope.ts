@@ -99,7 +99,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function fail(message: string): never {
-	throw new Error(`Invalid security harness configuration: ${message}`);
+	throw new Error(`Invalid secgin configuration: ${message}`);
 }
 
 function exactKeys(value: Record<string, unknown>, keys: readonly string[], location: string): void {

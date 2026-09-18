@@ -1,11 +1,11 @@
 {
-	"name": "security-harness",
+	"name": "secgin",
 	"interface": {
-		"displayName": "Security harness"
+		"displayName": "secgin"
 	},
 	"plugins": [
 		{
-			"name": "security-harness",
+			"name": "secgin",
 			"source": {
 				"source": "local",
 				"path": "./"

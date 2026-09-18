@@ -1,11 +1,11 @@
 {
-	"name": "security-harness",
+	"name": "secgin",
 	"owner": {
 		"name": "fozagtx"
 	},
 	"plugins": [
 		{
-			"name": "security-harness",
+			"name": "secgin",
 			"source": "./",
 			"description": "Authorized local-source VDH/VVS security research. No canned target."
 		}

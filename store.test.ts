@@ -14,7 +14,7 @@ after(async () => {
 });
 
 async function directory(): Promise<string> {
-	const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "security-harness-store-"));
+	const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "secgin-store-"));
 	temporaryDirectories.push(temporaryDirectory);
 	return temporaryDirectory;
 }

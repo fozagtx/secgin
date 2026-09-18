@@ -36,13 +36,13 @@ test("pashov/skills is installed from GitHub with x-ray, solidity-auditor, and f
 
 test("plugin skill forbids executing vendored Pashov playbooks", () => {
 	const agents = readFileSync(join(repoRoot, "AGENTS.md"), "utf8");
-	const skill = readFileSync(join(repoRoot, "skills/security-harness/SKILL.md"), "utf8");
-	assert.match(agents, /skills\/security-harness\/SKILL\.md/);
+	const skill = readFileSync(join(repoRoot, "skills/secgin/SKILL.md"), "utf8");
+	assert.match(agents, /skills\/secgin\/SKILL\.md/);
 	assert.match(agents, /Do \*\*not\*\* execute `pashov\/\*\*\/SKILL\.md`/);
 	assert.match(skill, /Do not execute vendored Pashov playbooks/);
 	assert.match(skill, /the host agent/);
 	assert.equal(existsSync(join(repoRoot, "plugin.json")), true);
-	assert.equal(existsSync(join(repoRoot, "skills", "security-harness", "SKILL.md")), true);
+	assert.equal(existsSync(join(repoRoot, "skills", "secgin", "SKILL.md")), true);
 	assert.doesNotMatch(readFileSync(join(repoRoot, "install-plugin.mjs"), "utf8"), /cursor/);
 });
 

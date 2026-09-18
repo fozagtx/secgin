@@ -1,4 +1,4 @@
-# Impact harness
+# secgin
 
 This repository **is** the plugin. [Agent Plugins 1.0](https://agent-plugins.org): Skill + MCP, plus a JSON worker backbone.
 
@@ -21,7 +21,7 @@ node install-plugin.mjs --host <host>
 | `minimax` | MiniMax Code plugin dir |
 | `codex` | Codex plugin dir + personal marketplace |
 | `claude` | Claude Code plugin dir + marketplace |
-| `cloud` | `~/.security-harness` + loopback Streamable HTTP |
+| `cloud` | `~/.secgin` + loopback Streamable HTTP |
 | `dest` | `--path /your/dir` — generic copy for any other CLI |
 | `all` | minimax + codex + claude |
 
@@ -30,7 +30,7 @@ Any other agent that loads Agent Plugins or MCP can use `--host dest --path …`
 ```bash
 node install-plugin.mjs --host dest --path ~/agents/secgin
 node install-plugin.mjs --host cloud
-# then: node ~/.security-harness/server.mjs --http --port 8787
+# then: node ~/.secgin/server.mjs --http --port 8787
 # MCP URL: http://127.0.0.1:8787/mcp
 ```
 

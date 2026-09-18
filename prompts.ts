@@ -4,7 +4,7 @@ import type { HarnessConfig, Snapshot } from "./scope.ts";
 import { formatSourceFiles } from "./slice.ts";
 import { stageLine, toolCatalogText } from "./tools.ts";
 
-export const PROMPT_VERSION = "security-harness-7";
+export const PROMPT_VERSION = "secgin-7";
 
 /**
  * Built-in specialist lenses. Web2 from Cloudflare VDH + 0xasen. Web3 is the

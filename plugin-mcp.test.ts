@@ -33,7 +33,7 @@ function waitListening(child) {
 	return new Promise((resolvePromise, reject) => {
 		const timer = setTimeout(() => reject(new Error("timeout waiting for HTTP listen")), 15000);
 		const onData = (chunk) => {
-			const match = /security-harness mcp (http:\/\/\S+)/.exec(chunk.toString("utf8"));
+			const match = /secgin mcp (http:\/\/\S+)/.exec(chunk.toString("utf8"));
 			if (!match) return;
 			clearTimeout(timer);
 			child.stderr.off("data", onData);
@@ -58,7 +58,7 @@ test("plugin MCP lists harness tools and lists MiniMax models over stdio", async
 		rpc(child, 3, "tools/call", { name: "harness_run", arguments: { scope: "scope.json", output: "out" } });
 		rpc(child, 4, "tools/call", { name: "harness_models", arguments: {} });
 		const [init, listed, denied, models] = await collectLines(child, 4);
-		assert.equal(init.result.serverInfo.name, "security-harness");
+		assert.equal(init.result.serverInfo.name, "secgin");
 		const names = listed.result.tools.map((tool) => tool.name);
 		assert.deepEqual(names, ["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"]);
 		assert.equal(denied.result.isError, true);

@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = process.env.SECURITY_HARNESS_HOME?.trim() || dirname(here);
+const root = process.env.SECGIN_HOME?.trim() || dirname(here);
 const server = join(root, "server.mjs");
 const expected = ["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"];
 

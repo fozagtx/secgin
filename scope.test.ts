@@ -42,7 +42,7 @@ function configWithLimit(limit: keyof HarnessConfig["limits"], value: number): R
 }
 
 async function fixture(): Promise<string> {
-	const directory = await mkdtemp(path.join(os.tmpdir(), "security-harness-"));
+	const directory = await mkdtemp(path.join(os.tmpdir(), "secgin-"));
 	await mkdir(path.join(directory, "src"));
 	await writeFile(path.join(directory, "src", "app.ts"), "export const answer = 42;\n");
 	return directory;

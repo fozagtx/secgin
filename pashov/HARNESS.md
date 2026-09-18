@@ -8,6 +8,6 @@ Cloned from https://github.com/pashov/skills (see `ORIGIN`). MIT license in `LIC
 | `solidity-auditor/` | twelve `vdh.hunt` cells | shell `find`, live Agent spawn outside the orchestrator |
 | `fizz/` | `pashov.fizz` propose-only | Echidna, Medusa, Foundry, writes into the target |
 
-The host agent loads Skill `security-harness` (MCP tools `harness_plan` / `harness_run`). That Skill forbids running the vendored scripts. Original `SKILL.md` files stay as the upstream source of truth.
+The host agent loads Skill `secgin` (MCP tools `harness_plan` / `harness_run`). That Skill forbids running the vendored scripts. Original `SKILL.md` files stay as the upstream source of truth.
 
 Evals/benchmarks from upstream were not copied (no canned targets).

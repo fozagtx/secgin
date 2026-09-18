@@ -1,5 +1,5 @@
 {
-	"name": "security-harness",
+	"name": "secgin",
 	"version": "0.1.0",
 	"description": "Authorized local-source VDH/VVS security research. No canned target."
 }

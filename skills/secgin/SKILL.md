@@ -1,11 +1,11 @@
 ---
-name: security-harness
+name: secgin
 description: Guide for the local-source VDH/VVS security research harness. Use when the operator wants authorized Web2/Web3 source review, MCP tools harness_plan harness_run harness_status, x-ray, solidity-auditor, fizz, or Pashov skills. Not a canned audit product and not a live scanner.
 license: MIT
 compatibility: Requires a host that loads Agent Skills and MCP (Agent Plugins 1.0, or any CLI/cloud agent with those surfaces).
 ---
 
-# Security harness
+# secgin
 
 This Skill teaches **the host agent** how to operate the harness. The host is whatever TUI or cloud agent loaded this plugin. The JSON worker is the backbone; it does not care which app spawned it. Worker models are bug-bounty hunters: Web2 or smart-contract bugs that an attacker could cash in. Impact first. MCP tools `harness_models`, `harness_plan`, `harness_run`, `harness_status`, and `harness_evaluate` spawn that worker. Do not invent a target, demo finding, or mock client.
 

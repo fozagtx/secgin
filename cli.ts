@@ -14,7 +14,7 @@ import { readRunStatus } from "./status.ts";
 import { RunStore } from "./store.ts";
 import { HARNESS_TOOLS } from "./tools.ts";
 
-const HELP = `JSON worker for the security harness (host-agnostic backbone, not a TUI).
+const HELP = `JSON worker for secgin (host-agnostic backbone, not a TUI).
 Install this repository into whichever CLI you use:
   git clone https://github.com/fozagtx/secgin
   node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all
@@ -32,7 +32,7 @@ If this process is inside Docker, an inner unshare sandbox silently fails unless
 No target network requests, shell tools, test execution, transactions or automatic disclosure.
 There is no demo, mock client, or canned target.
 VDH stages (recon, hunt, validate, gapfill, dedup, trace, feedback, report, sibling, wishlist) and VVS stages (dedup, judgment, fixing) are tools the agent may declare at any time. The harness runs them; models cannot execute tools, patches, or tests.
-Load the security-harness Skill from the plugin package.`;
+Load the secgin Skill from the plugin package.`;
 
 let operation = "command parsing";
 
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
 main().catch(() => {
 	// Do not print arbitrary provider, file, or JSON-parser errors containing private values.
 	console.error(
-		`Security harness failed during ${operation}. No private error payload was logged. Check the README and private task ledger; use --help for syntax.`,
+		`secgin failed during ${operation}. No private error payload was logged. Check the README and private task ledger; use --help for syntax.`,
 	);
 	process.exitCode = 1;
 });

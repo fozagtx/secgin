@@ -60,13 +60,13 @@ test("install-plugin copies a self-contained plugin for the installed mcode data
 	try {
 		const result = install({ MINIMAX_DATA_DIR: dataDir }, ["--host", "minimax"]);
 		assert.equal(result.status, 0, result.stderr);
-		const root = join(dataDir, "plugins", "security-harness");
+		const root = join(dataDir, "plugins", "secgin");
 		assert.equal(existsSync(join(root, "plugin.json")), true);
 		assert.equal(existsSync(join(root, "mcp.json")), true);
 		assert.equal(existsSync(join(root, "server.mjs")), true);
 		assert.equal(existsSync(join(root, "cli.ts")), true);
 		assert.equal(existsSync(join(root, "minimax-client.ts")), true);
-		assert.equal(existsSync(join(root, "skills", "security-harness", "SKILL.md")), true);
+		assert.equal(existsSync(join(root, "skills", "secgin", "SKILL.md")), true);
 		assert.equal(existsSync(join(root, "pi-client.ts")), false);
 		assert.equal(existsSync(join(root, "extension.ts")), false);
 		assert.match(readFileSync(join(root, "plugin.json"), "utf8"), /agent-plugins.org\/schemas\/1.0.0\/plugin.schema.json/);
@@ -81,12 +81,12 @@ test("install-plugin --host codex writes Agent Plugins package and a personal ma
 	try {
 		const result = install({ HOME: home }, ["--host", "codex"]);
 		assert.equal(result.status, 0, result.stderr);
-		const root = join(home, ".codex", "plugins", "security-harness");
+		const root = join(home, ".codex", "plugins", "secgin");
 		assert.equal(existsSync(join(root, "plugin.json")), true);
 		assert.equal(existsSync(join(root, "cli.ts")), true);
 		const marketplace = JSON.parse(readFileSync(join(home, ".agents", "plugins", "marketplace.json"), "utf8"));
-		assert.equal(marketplace.plugins[0].name, "security-harness");
-		assert.equal(marketplace.plugins[0].source.path, "./.codex/plugins/security-harness");
+		assert.equal(marketplace.plugins[0].name, "secgin");
+		assert.equal(marketplace.plugins[0].source.path, "./.codex/plugins/secgin");
 	} finally {
 		rmSync(home, { recursive: true, force: true });
 	}
@@ -97,12 +97,12 @@ test("install-plugin --host claude writes a Claude plugin overlay", () => {
 	try {
 		const result = install({ HOME: home }, ["--host", "claude"]);
 		assert.equal(result.status, 0, result.stderr);
-		const root = join(home, ".claude", "plugins", "security-harness");
+		const root = join(home, ".claude", "plugins", "secgin");
 		assert.equal(existsSync(join(root, ".claude-plugin", "plugin.json")), true);
 		assert.equal(existsSync(join(root, ".mcp.json")), true);
-		assert.equal(existsSync(join(root, "skills", "security-harness", "SKILL.md")), true);
+		assert.equal(existsSync(join(root, "skills", "secgin", "SKILL.md")), true);
 		const marketplace = JSON.parse(readFileSync(join(home, ".claude", "plugins", "marketplace.json"), "utf8"));
-		assert.equal(marketplace.plugins[0].source, "./security-harness");
+		assert.equal(marketplace.plugins[0].source, "./secgin");
 	} finally {
 		rmSync(home, { recursive: true, force: true });
 	}
@@ -113,7 +113,7 @@ test("install-plugin --host cloud copies the worker and prints a loopback HTTP c
 	try {
 		const result = install({ HOME: home }, ["--host", "cloud"]);
 		assert.equal(result.status, 0, result.stderr);
-		assert.equal(existsSync(join(home, ".security-harness", "cli.ts")), true);
+		assert.equal(existsSync(join(home, ".secgin", "cli.ts")), true);
 		assert.match(result.stdout, /--http --port 8787/);
 		assert.match(result.stdout, /http:\/\/127\.0\.0\.1:8787\/mcp/);
 	} finally {

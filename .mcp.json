@@ -1,6 +1,6 @@
 {
 	"mcpServers": {
-		"security-harness": {
+		"secgin": {
 			"command": "node",
 			"args": ["./server.mjs"]
 		}
