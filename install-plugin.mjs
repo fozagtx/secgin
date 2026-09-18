@@ -22,11 +22,12 @@ const HOSTS = ["minimax", "codex", "claude", "cloud", "dest", "all"];
 const HELP = `Install this repository as an Agent Plugins 1.0 package into a host CLI.
 
   git clone https://github.com/fozagtx/secgin
-  node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all
+  node install-plugin.mjs --host minimax | codex | claude | cloud | dest (--path DIR, any other agent) | all
   node install-plugin.mjs --host dest --path /your/plugin-dir
 
 The JSON worker is the backbone. --host selects the CLI adapter. dest is a generic copy for any other agent.
 stdio MCP for local hosts. Cloud uses node server.mjs --http.
+Every install prints a generic Skill path + MCP stdio/HTTP snippet for hosts without a built-in adapter.
 `;
 
 function argValue(name) {
@@ -51,6 +52,36 @@ function parseHost() {
 }
 
 function emptyDir(target) {
+	target = path.resolve(target);
+	const repoPath = path.resolve(repo);
+	const repoRelative = path.relative(target, repoPath);
+	const protectsRepo =
+		repoRelative === "" || (!repoRelative.startsWith("..") && !path.isAbsolute(repoRelative));
+	const protectedTargets = new Set([path.parse(target).root, path.resolve(homedir()), path.resolve(process.cwd())]);
+	if (protectedTargets.has(target) || protectsRepo) {
+		throw new Error(`Refusing to remove protected directory ${target}`);
+	}
+	if (existsSync(target)) {
+		let nonEmpty = true;
+		try {
+			nonEmpty = readdirSync(target).length > 0;
+		} catch {
+			nonEmpty = true;
+		}
+		if (nonEmpty) {
+			let isSecginInstall = false;
+			try {
+				isSecginInstall = readJson(path.join(target, "plugin.json"))?.name === "secgin";
+			} catch {
+				isSecginInstall = false;
+			}
+			if (!isSecginInstall) {
+				throw new Error(
+					`Refusing to overwrite non-empty directory ${target}: it is not an existing secgin install`,
+				);
+			}
+		}
+	}
 	mkdirSync(path.dirname(target), { recursive: true });
 	rmSync(target, { recursive: true, force: true });
 	mkdirSync(target, { recursive: true });
@@ -90,7 +121,7 @@ function installMinimax() {
 	const target = path.join(dataDir, "plugins", "secgin");
 	emptyDir(target);
 	copyWorker(target);
-	return [`minimax ${target}`];
+	return { lines: [`minimax ${target}`], targets: [target] };
 }
 
 function installCodex() {
@@ -101,7 +132,11 @@ function installCodex() {
 	const marketplacePath =
 		process.env.AGENTS_PLUGINS_MARKETPLACE?.trim() ||
 		path.join(homedir(), ".agents", "plugins", "marketplace.json");
-	const sourcePath = "./.codex/plugins/secgin";
+	const relativeTarget = path.relative(homedir(), target);
+	const sourcePath =
+		relativeTarget.startsWith("..") || path.isAbsolute(relativeTarget)
+			? target
+			: `./${relativeTarget.split(path.sep).join("/")}`;
 	const entry = {
 		name: "secgin",
 		source: { source: "local", path: sourcePath },
@@ -123,7 +158,10 @@ function installCodex() {
 	}
 	marketplace.plugins = upsertNamed(marketplace.plugins, "secgin", entry);
 	writeJson(marketplacePath, marketplace);
-	return [`codex ${target}`, `codex marketplace ${marketplacePath}`];
+	return {
+		lines: [`codex ${target}`, `codex marketplace ${marketplacePath}`],
+		targets: [target],
+	};
 }
 
 function installClaude() {
@@ -138,7 +176,7 @@ function installClaude() {
 	});
 	writeJson(path.join(target, ".mcp.json"), {
 		mcpServers: {
-			"secgin": stdioMcp("./server.mjs"),
+			"secgin": stdioMcp("${CLAUDE_PLUGIN_ROOT}/server.mjs"),
 		},
 	});
 	const marketplacePath = path.join(claudeHome, "plugins", "marketplace.json");
@@ -146,7 +184,19 @@ function installClaude() {
 		name: "secgin-local",
 		plugins: [{ name: "secgin", source: "./secgin" }],
 	});
-	return [`claude ${target}`, `claude marketplace ${marketplacePath}`];
+	return {
+		lines: [`claude ${target}`, `claude marketplace ${marketplacePath}`],
+		targets: [target],
+	};
+}
+
+function printGenericWiring(target) {
+	const server = path.join(target, "server.mjs");
+	process.stdout.write(
+		`Wire any other agent:\n  Skill file: ${path.join(target, "skills", "secgin", "SKILL.md")}\n` +
+			`  MCP (stdio): ${JSON.stringify({ mcpServers: { secgin: stdioMcp(server) } })}\n` +
+			`  MCP (HTTP):  node ${server} --http --port 8787   ->  http://127.0.0.1:8787/mcp\n`,
+	);
 }
 
 function installCloud() {
@@ -156,7 +206,7 @@ function installCloud() {
 	const server = path.join(pluginHome, "server.mjs");
 	process.stdout.write(`Cloud MCP (loopback Streamable HTTP):\n  node ${server} --http --port 8787\n`);
 	process.stdout.write("Point the cloud agent at http://127.0.0.1:8787/mcp\n");
-	return [`cloud ${pluginHome}`];
+	return { lines: [`cloud ${pluginHome}`], targets: [pluginHome] };
 }
 
 function installDest() {
@@ -165,7 +215,7 @@ function installDest() {
 	const target = path.resolve(dest.trim());
 	emptyDir(target);
 	copyWorker(target);
-	return [`dest ${target}`];
+	return { lines: [`dest ${target}`], targets: [target] };
 }
 
 function install(host) {
@@ -174,12 +224,18 @@ function install(host) {
 	if (host === "claude") return installClaude();
 	if (host === "cloud") return installCloud();
 	if (host === "dest") return installDest();
-	return [...installMinimax(), ...installCodex(), ...installClaude()];
+	const installs = [installMinimax(), installCodex(), installClaude()];
+	return {
+		lines: installs.flatMap((result) => result.lines),
+		targets: installs.flatMap((result) => result.targets),
+	};
 }
 
 try {
-	const lines = install(parseHost());
+	const result = install(parseHost());
+	const lines = result.lines;
 	for (const line of lines) process.stdout.write(`Installed ${line}\n`);
+	for (const target of result.targets) printGenericWiring(target);
 	process.stdout.write(
 		"Restart the host. Skill: secgin. MCP: harness_models, harness_plan, harness_run, harness_status, harness_evaluate.\n",
 	);

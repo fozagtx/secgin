@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -101,6 +101,8 @@ test("install-plugin --host claude writes a Claude plugin overlay", () => {
 		assert.equal(existsSync(join(root, ".claude-plugin", "plugin.json")), true);
 		assert.equal(existsSync(join(root, ".mcp.json")), true);
 		assert.equal(existsSync(join(root, "skills", "secgin", "SKILL.md")), true);
+		const mcp = JSON.parse(readFileSync(join(root, ".mcp.json"), "utf8"));
+		assert.equal(mcp.mcpServers.secgin.args[0], "${CLAUDE_PLUGIN_ROOT}/server.mjs");
 		const marketplace = JSON.parse(readFileSync(join(home, ".claude", "plugins", "marketplace.json"), "utf8"));
 		assert.equal(marketplace.plugins[0].source, "./secgin");
 	} finally {
@@ -135,7 +137,41 @@ test("install-plugin --host dest copies into the operator path", () => {
 		assert.equal(existsSync(join(dest, "plugin.json")), true);
 		assert.equal(existsSync(join(dest, "server.mjs")), true);
 		assert.equal(existsSync(join(dest, "cli.ts")), true);
+		assert.match(result.stdout, /Skill file:/);
+		assert.equal(result.stdout.includes(`"args":["${join(dest, "server.mjs")}"]`), true);
+		const reinstall = install({}, ["--host", "dest", "--path", dest]);
+		assert.equal(reinstall.status, 0, reinstall.stderr);
 	} finally {
 		rmSync(dest, { recursive: true, force: true });
+	}
+});
+
+test("install-plugin --host dest refuses to overwrite an unrelated non-empty directory", () => {
+	const dest = mkdtempSync(join(tmpdir(), "dest-unrelated-"));
+	const file = join(dest, "unrelated.txt");
+	writeFileSync(file, "keep");
+	try {
+		const result = install({}, ["--host", "dest", "--path", dest]);
+		assert.notEqual(result.status, 0);
+		assert.match(
+			result.stderr,
+			new RegExp(`Refusing to overwrite non-empty directory ${dest}: it is not an existing secgin install`),
+		);
+		assert.equal(readFileSync(file, "utf8"), "keep");
+	} finally {
+		rmSync(dest, { recursive: true, force: true });
+	}
+});
+
+test("install-plugin --host codex uses CODEX_HOME in its marketplace path", () => {
+	const home = mkdtempSync(join(tmpdir(), "codex-custom-home-"));
+	const codexHome = join(home, "custom-codex");
+	try {
+		const result = install({ HOME: home, CODEX_HOME: codexHome }, ["--host", "codex"]);
+		assert.equal(result.status, 0, result.stderr);
+		const marketplace = JSON.parse(readFileSync(join(home, ".agents", "plugins", "marketplace.json"), "utf8"));
+		assert.equal(marketplace.plugins[0].source.path, "./custom-codex/plugins/secgin");
+	} finally {
+		rmSync(home, { recursive: true, force: true });
 	}
 });
