@@ -86,6 +86,14 @@ test("parses only complete, explicit configuration", () => {
 	}
 });
 
+test("accepts ai and reports the expanded domain validation message", () => {
+	assert.deepEqual(parseConfig(config({ domains: ["ai"] })).domains, ["ai"]);
+	assert.throws(
+		() => parseConfig(config({ domains: ["foo"] })),
+		/config\.domains must be a non-empty array of web2, web3, or ai/,
+	);
+});
+
 test("loads a deterministic UTF-8 source snapshot", async (t) => {
 	const directory = await fixture();
 	cleanupFixture(t, directory);

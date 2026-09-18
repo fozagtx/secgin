@@ -8,6 +8,8 @@ export interface ModelRef {
 	id: string;
 }
 
+export type Domain = "web2" | "web3" | "ai";
+
 export interface HarnessConfig {
 	version: 1;
 	name: string;
@@ -18,7 +20,7 @@ export interface HarnessConfig {
 	};
 	root: string;
 	files: string[];
-	domains: ("web2" | "web3")[];
+	domains: Domain[];
 	models: {
 		recon: ModelRef;
 		hunter: ModelRef;
@@ -215,11 +217,11 @@ export function parseConfig(value: unknown): HarnessConfig {
 	if (
 		!Array.isArray(domainsValue) ||
 		domainsValue.length === 0 ||
-		domainsValue.some((domain) => domain !== "web2" && domain !== "web3")
+		domainsValue.some((domain) => domain !== "web2" && domain !== "web3" && domain !== "ai")
 	) {
-		fail("config.domains must be a non-empty array of web2 or web3");
+		fail("config.domains must be a non-empty array of web2, web3, or ai");
 	}
-	const domains = domainsValue as ("web2" | "web3")[];
+	const domains = domainsValue as Domain[];
 	if (new Set(domains).size !== domains.length) fail("config.domains must not contain duplicates");
 	const modelsValue = object(config.models, "config.models", ["recon", "hunter", "validator"]);
 	const models = {

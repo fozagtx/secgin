@@ -192,10 +192,10 @@ test("runs the complete offline Web2 and Web3 schedule", async () => {
 		const client = new FakeClient((request) => reply(request));
 		const report = await run(directory, snapshot, harnessConfig, client);
 		assert.equal(report.status, "complete");
-		assert.equal(report.reservedCalls, 42);
+		assert.equal(report.reservedCalls, 46);
 		assert.equal(client.requests.filter((request) => promptStage(request.prompt) === "vdh.recon").length, 4);
 		assert.equal(client.requests.filter((request) => promptStage(request.prompt) === "pashov.fizz").length, 1);
-		assert.equal(client.requests.filter((request) => promptStage(request.prompt) === "vdh.hunt" || promptStage(request.prompt) === "vdh.gapfill").length, 36);
+		assert.equal(client.requests.filter((request) => promptStage(request.prompt) === "vdh.hunt" || promptStage(request.prompt) === "vdh.gapfill").length, 40);
 		assert.ok(report.coverage.some((cell) => cell.task === "hunt:web2:identity-and-tenancy:0"));
 		assert.ok(report.coverage.some((cell) => cell.task === "hunt:web3:flow-gap:0"));
 		assert.ok(report.coverage.some((cell) => cell.task === "pashov.fizz"));
@@ -204,7 +204,7 @@ test("runs the complete offline Web2 and Web3 schedule", async () => {
 		assert.ok(report.coverage.some((cell) => cell.task === "trace"));
 		assert.ok(report.coverage.some((cell) => cell.task === "feedback"));
 		assert.ok(report.coverage.some((cell) => cell.task === "vvs-dedup"));
-		assert.equal(report.funnel.shallowHunts, 36);
+		assert.equal(report.funnel.shallowHunts, 40);
 		assert.equal(report.pashov.origin, "https://github.com/pashov/skills");
 		assert.equal(report.pashov.skills.map((skill) => skill.name).join(","), "x-ray,solidity-auditor,fizz");
 		assert.deepEqual(report.fizz?.blockers, ["Harness does not execute Echidna or Medusa"]);
@@ -349,7 +349,7 @@ test("deduplicates identical candidates without collapsing distinct root causes"
 		);
 		const report = await run(directory, snapshot, config(), client);
 		assert.equal(report.candidates.length, 2);
-		assert.ok(report.candidates.every((candidate) => candidate.origins.length === 6));
+		assert.ok(report.candidates.every((candidate) => candidate.origins.length === 8));
 		assert.deepEqual(
 			new Set(report.candidates.map((candidate) => candidate.finding.rootCause)),
 			new Set(["same root cause", "different root cause"]),
@@ -536,4 +536,3 @@ test("trace walks in-snapshot imports into sibling hunts instead of inventing co
 		await rm(directory, { recursive: true, force: true });
 	}
 });
-

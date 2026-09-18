@@ -71,7 +71,7 @@ Placed beside or above the code. All keys required, unknown keys rejected. `harn
 ```
 
 - `root`/`files`: relative, no `..`, no symlinks, 1–500 text source files; `.env`, keys, `.ssh/`, `.git/` rejected.
-- `domains`: `web2`, `web3`, or both (`web3` adds twelve Solidity auditor cells + fizz invariant proposals).
+- `domains`: `web2`, `web3`, `ai`, or any combination (`ai` adds six LLM/agent/MCP cells; `web3` adds twelve Solidity auditor cells + fizz invariant proposals).
 - `models`: pairs from `harness_models`; hunter ≠ validator.
 - `limits` caps: `maxCalls` 1000, `maxInputChars` 2,000,000 (snapshot ≤ half), `maxOutputTokens` 100,000, `timeoutMs` 3,600,000, `concurrency` 8, `passes` 3, `maxFindingsPerTask` 20.
 

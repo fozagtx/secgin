@@ -96,7 +96,7 @@ test("CLI plans the operator's scope and evaluates a report the operator supplie
 		const scope = writeAuthorizedScope(temporary);
 		const preview = invoke("plan", scope);
 		assert.equal(preview.status, 0, preview.stderr);
-		assert.equal(JSON.parse(preview.stdout).hunts.length, 18);
+		assert.equal(JSON.parse(preview.stdout).hunts.length, 20);
 		assert.ok(JSON.parse(preview.stdout).tools["vdh.hunt"]);
 		assert.ok(JSON.parse(preview.stdout).tools["pashov.fizz"]);
 		assert.equal(JSON.parse(preview.stdout).pashov.origin, "https://github.com/pashov/skills");
