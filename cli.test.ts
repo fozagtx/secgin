@@ -12,9 +12,14 @@ const cli = fileURLToPath(new URL("./cli.ts", import.meta.url));
 const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
 function invoke(...args: string[]) {
+	return invokeWithEnv(process.env, ...args);
+}
+
+function invokeWithEnv(env: NodeJS.ProcessEnv, ...args: string[]) {
 	return spawnSync(process.execPath, ["--experimental-strip-types", cli, ...args], {
 		cwd: repoRoot,
 		encoding: "utf8",
+		env: { ...env },
 		timeout: 30000,
 	});
 }
@@ -44,6 +49,41 @@ function writeAuthorizedScope(directory: string): string {
 				concurrency: 2,
 				passes: 1,
 				maxFindingsPerTask: 3,
+			},
+		}),
+	);
+	return scope;
+}
+
+function writeRemoteScope(directory: string, maxCalls = 400): string {
+	writeFileSync(join(directory, "a.ts"), "export function ping(): string { return \"ok\"; }\n");
+	const scope = join(directory, "scope.json");
+	writeFileSync(
+		scope,
+		JSON.stringify({
+			version: 1,
+			name: "cli-run-test",
+			authorization: {
+				reference: "test",
+				expiresAt: "2099-01-01T00:00:00Z",
+				allowRemoteModels: true,
+			},
+			root: ".",
+			files: ["a.ts"],
+			domains: ["web2"],
+			models: {
+				recon: { provider: "minimax", id: "MiniMax-M2.7-highspeed" },
+				hunter: { provider: "minimax", id: "MiniMax-M3" },
+				validator: { provider: "minimax", id: "MiniMax-M2.7" },
+			},
+			limits: {
+				maxCalls,
+				maxInputChars: 1500000,
+				maxOutputTokens: 32000,
+				timeoutMs: 1800000,
+				concurrency: 4,
+				passes: 2,
+				maxFindingsPerTask: 10,
 			},
 		}),
 	);
@@ -195,6 +235,57 @@ test("CLI refuses missing consent and never echoes a malformed config's private 
 		assert.doesNotMatch(result.stdout + result.stderr, /must-not-echo/);
 		assert.match(result.stderr, /scope validation/);
 		assert.equal(invoke("demo", join(temporary, "out")).status, 1);
+	} finally {
+		rmSync(temporary, { recursive: true, force: true });
+	}
+});
+
+test("CLI surfaces invalid configuration reasons", () => {
+	const temporary = mkdtempSync(join(tmpdir(), "security-cli-"));
+	try {
+		const scope = writeRemoteScope(temporary, 0);
+		const result = invoke("plan", scope);
+		assert.equal(result.status, 1);
+		assert.match(result.stderr, /Reason: Invalid secgin configuration: config\.limits\.maxCalls/);
+	} finally {
+		rmSync(temporary, { recursive: true, force: true });
+	}
+});
+
+test("CLI surfaces missing model credentials", () => {
+	const temporary = mkdtempSync(join(tmpdir(), "security-cli-"));
+	const home = mkdtempSync(join(tmpdir(), "security-cli-home-"));
+	const output = mkdtempSync(join(tmpdir(), "security-cli-output-"));
+	try {
+		const scope = writeRemoteScope(temporary);
+		const env = { ...process.env };
+		delete env.MINIMAX_API_KEY;
+		delete env.MINIMAX_CN_API_KEY;
+		env.HOME = home;
+		const result = invokeWithEnv(
+			env,
+			"run",
+			scope,
+			output,
+			"--allow-remote-models",
+			"--keep-models",
+		);
+		assert.equal(result.status, 1);
+		assert.match(result.stderr, /Reason: No credentials for provider minimax: set MINIMAX_API_KEY/);
+	} finally {
+		rmSync(temporary, { recursive: true, force: true });
+		rmSync(home, { recursive: true, force: true });
+		rmSync(output, { recursive: true, force: true });
+	}
+});
+
+test("CLI surfaces missing scope files", () => {
+	const temporary = mkdtempSync(join(tmpdir(), "security-cli-"));
+	try {
+		const missing = join(temporary, "missing-scope.json");
+		const result = invoke("plan", missing);
+		assert.equal(result.status, 1);
+		assert.match(result.stderr, /Reason: file not found:/);
 	} finally {
 		rmSync(temporary, { recursive: true, force: true });
 	}

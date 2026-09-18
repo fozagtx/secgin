@@ -34,10 +34,26 @@ There is no demo, mock client, or canned target.
 VDH stages (recon, hunt, validate, gapfill, dedup, trace, feedback, report, sibling, wishlist) and VVS stages (dedup, judgment, fixing) are tools the agent may declare at any time. The harness runs them; models cannot execute tools, patches, or tests.
 Load the secgin Skill from the plugin package.`;
 
+const SAFE_ERROR_PREFIXES = [
+	"Invalid secgin configuration:",
+	"Unsafe snapshot",
+	"Snapshot ",
+	"Output must be outside the source root",
+	"Remote model transmission is not authorized",
+	"Authorization expired",
+	"Configured model is absent from the installed catalog",
+	"Output budget exceeds model capability",
+	"No credentials for provider ",
+	"Model context budget exceeded",
+	"secgin run store:",
+];
+
 let operation = "command parsing";
+let argvPaths: string[] = [];
 
 async function main(): Promise<void> {
 	const [command, ...args] = process.argv.slice(2);
+	argvPaths = args.map((arg) => resolve(arg));
 	if (!command || command === "--help") {
 		console.log(HELP);
 		return;
@@ -162,10 +178,38 @@ async function main(): Promise<void> {
 	}
 }
 
-main().catch(() => {
-	// Do not print arbitrary provider, file, or JSON-parser errors containing private values.
+main().catch((error: unknown) => {
+	const message = error instanceof Error ? error.message : "";
+	if (message === HELP) {
+		process.stderr.write(HELP);
+		process.exitCode = 1;
+		return;
+	}
 	console.error(
 		`secgin failed during ${operation}. No private error payload was logged. Check the README and private task ledger; use --help for syntax.`,
 	);
+	const errorRecord =
+		error && typeof error === "object"
+			? (error as { code?: unknown; path?: unknown })
+			: {};
+	const pathOperation = new Set([
+		"scope validation",
+		"source snapshot validation",
+		"output directory validation",
+		"run status",
+		"benchmark label validation",
+	]);
+	const missingPath =
+		errorRecord.code === "ENOENT" &&
+		typeof errorRecord.path === "string" &&
+		pathOperation.has(operation) &&
+		argvPaths.find((candidate) => candidate === errorRecord.path);
+	if (missingPath) {
+		console.error(`Reason: file not found: ${missingPath}`);
+	} else if (error instanceof SyntaxError && operation === "scope validation") {
+		console.error("Reason: scope.json is not valid JSON");
+	} else if (SAFE_ERROR_PREFIXES.some((prefix) => message.startsWith(prefix))) {
+		console.error(`Reason: ${message}`);
+	}
 	process.exitCode = 1;
 });
