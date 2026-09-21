@@ -116,7 +116,7 @@ test("ai and web2 plans expose their built-in cells", () => {
 		LENSES.ai["agency-and-action-binding"],
 		0,
 		aiConfig,
-		{ cell: "agency-and-action-binding", rejectedPatterns: [] },
+		{ cell: "agency-and-action-binding", rejectedPatterns: [], alreadyFound: [] },
 	);
 	assert.match(prompt, /critical: attacker content or model output gains code execution/);
 	assert.match(prompt, /action-binding/);

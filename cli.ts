@@ -28,7 +28,6 @@ The host agent calls MCP tools harness_models, harness_plan, harness_run, harnes
                                         Prompts before recon, hunt, validate and gapfill unless --keep-models
 Repeat the same run command to resume. Changed scope/source/prompts require a new output directory.
 Exit codes: 0 completed, 1 configuration/runtime error, 2 incomplete pipeline.
-If this process is inside Docker, an inner unshare sandbox silently fails unless the container was started with --security-opt seccomp=unconfined --security-opt apparmor=unconfined. Use compose.yaml in this directory.
 No target network requests, shell tools, test execution, transactions or automatic disclosure.
 There is no demo, mock client, or canned target.
 VDH stages (recon, hunt, validate, gapfill, dedup, trace, feedback, report, sibling, wishlist) and VVS stages (dedup, judgment, fixing) are tools the agent may declare at any time. The harness runs them; models cannot execute tools, patches, or tests.
@@ -119,7 +118,7 @@ async function main(): Promise<void> {
 						4 + (config.domains.includes("web3") ? 1 : 0) + tasks.length * (2 + config.limits.maxFindingsPerTask) + 8,
 					hardCallCap: config.limits.maxCalls,
 					nestedRuntime,
-					note: "Pashov x-ray is VDH recon (three passes plus synthesis). Pashov solidity-auditor is twelve web3 hunt cells. Pashov fizz proposes invariant properties and is never executed. Recon may add extra attack-class hunts. Empty cells are gapfilled once. Agents may declare VDH/VVS/Pashov tools at any time; the harness runs them. VVS uses a different model than VDH. Independent validation cannot file findings. Patches are never applied.",
+					note: "Pashov x-ray is VDH recon (three passes plus synthesis). Pashov solidity-auditor is twelve web3 hunt cells. Pashov fizz proposes invariant properties and is never executed. Recon may add extra attack-class hunts. Empty cells are gapfilled once. Agents may declare VDH/VVS/Pashov tools at any time; the harness runs them. VVS uses a different model than VDH. Independent validation cannot file findings. Patches are never applied. Hunt passes run in sequence and each later pass receives the findings earlier passes already reported.",
 					warning:
 						"Plan makes no model calls. Scope is an operator attestation, not proof of program authorization.",
 				},

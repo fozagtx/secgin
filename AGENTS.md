@@ -10,4 +10,10 @@ When the operator asks to audit, x-ray, fizz, hunt, validate, or review **their*
 4. Do **not** execute `pashov/**/SKILL.md` as a playbook. No `enumerate.sh`, forge/hardhat coverage, Echidna, Medusa, or `test/fizz` writes into the target.
 5. No canned target, demo finding, mock client, live scan, exploit execution, or model-confirmed bugs. Confirmed stays 0 until a human reproduces.
 
-Install from this repository into the host CLI you are using: `node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all`.
+When editing this repository:
+
+- secgin is agent-first. The operator talks to their agent; the agent calls MCP tools. `cli.ts` is the worker `server.mjs` spawns, not a user-facing CLI. Do not document shell invocations of it as a way to use secgin.
+- Do not add tests, fixtures, or scripts that are not required by a change. Do not add files that do not belong to the plugin package.
+- Prompt changes bump `PROMPT_VERSION` in `prompts.ts`.
+
+Install from this repository into the host you are using: `node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all`.
