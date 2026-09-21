@@ -4,7 +4,7 @@ import { text } from "./schema.ts";
 /** Cloudflare VDH + VVS stages. Models declare these; they cannot execute them. */
 export const HARNESS_TOOLS = {
 	"vdh.recon": "Map architecture and write the threat model (three parallel recon passes, then a synthesis).",
-	"vdh.hunt": "Per-class attack against one coverage cell. Stay on this cell; fork a sibling instead of wandering.",
+	"vdh.hunt": "Per-class attack against one coverage cell, reasoning against the recon intent model. Passes run in sequence; each later pass is told what earlier passes already found. Stay on this cell; fork a sibling instead of wandering.",
 	"vdh.validate": "Mechanical schema/path/quote/function checks, then an isolated agent tries to disprove the candidate.",
 	"vdh.reverify": "Fresh agent, different from the hunter, checks every factual claim in a surviving candidate against source. Cannot file findings. Verified is not confirmed.",
 	"vdh.gapfill": "Enqueue a fresh hunt for a shallow (area × attack-class) cell that returned zero findings. Repeat until cells stop being shallow or the call cap hits.",

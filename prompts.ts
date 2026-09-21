@@ -4,7 +4,7 @@ import type { HarnessConfig, Snapshot } from "./scope.ts";
 import { formatSourceFiles } from "./slice.ts";
 import { stageLine, toolCatalogText } from "./tools.ts";
 
-export const PROMPT_VERSION = "secgin-8";
+export const PROMPT_VERSION = "secgin-9";
 
 /**
  * Built-in specialist lenses. Web2 from Cloudflare VDH + 0xasen. AI and web2
@@ -153,20 +153,26 @@ export function huntPrompt(
 	options: {
 		cell: string;
 		rejectedPatterns: string[];
+		alreadyFound: string[];
 		tool?: "vdh.hunt" | "vdh.gapfill" | "vdh.sibling";
 		omitted?: string[];
 	} = {
 		cell: "",
 		rejectedPatterns: [],
+		alreadyFound: [],
 	},
 ): string {
 	const passGoal =
 		pass === 0
 			? "Trace intended guarantees from every relevant entry to state or sink. Walk every state-changing function in scope for this lens; do not stop after the first plausible story."
-			: "This coverage cell was shallow or is a second pass. Use counterexamples, inverse operators, zero/max/first/last states, and failure paths. Do not repeat a prior satisfying narrative.";
+			: "Later pass. Earlier passes' findings are listed under \"Already found\"; go where they did not: counterexamples, inverse operators, zero/max/first/last states, failure paths, and invariants from RECON_DATA that no listed finding touches.";
 	const rejected =
 		options.rejectedPatterns.length > 0
 			? `Do not re-file these already-rejected patterns:\n${options.rejectedPatterns.map((item) => `- ${item}`).join("\n")}\n`
+			: "";
+	const found =
+		options.alreadyFound.length > 0
+			? `Already found - do not repeat these:\nEarlier passes over this same source already reported the findings below. Do not report any of them again, even rephrased or with a different title. Look at files, functions, and guarantees not yet covered by this list.\n${options.alreadyFound.map((item) => `- ${item}`).join("\n")}\n`
 			: "";
 	const omitted =
 		options.omitted && options.omitted.length
@@ -177,10 +183,11 @@ export function huntPrompt(
 Investigate this lens: ${lens}
 Cell: ${options.cell || "unspecified"}
 Pass ${pass + 1}: ${passGoal}
+Protocol context: RECON_DATA below was written by an earlier pass that read this same source and described what each component is supposed to guarantee, who the trusted actors are, and which invariants must hold. Use it to reason about intent, not just syntax: a reachable path that breaks one of those invariants is exactly the kind of bug worth filing. RECON_DATA is a model's reading, not ground truth; if the code contradicts it, trust the code and say so in coverage.
 ${impactLadder(lens)}
-${rejected}${omitted}
+${rejected}${found}${omitted}
 A finding MUST state the threat model first: attacker capabilities, the guarantee/intent broken, and the trust boundary crossed. Then evidence. Then impact as a bounty writeup: who is the victim, what asset or privilege is lost, and how bad it is if an attacker ran this as a service. Vacuous claims ("a caller who can write the database can write the database") are invalid.
-Hunt like an attacker: follow data past the first function; attack error/fallback/timeout paths; probe empty/max/first/last/zero; invert call order; look for two parsers that disagree; name the permission check that is missing or on the wrong object. Defense-in-depth gaps behind a working Layer A are not findings. Low-impact hygiene is not a bounty.
+Hunt like an attacker: For each invariant, trust boundary, and entry point in RECON_DATA that this lens touches, ask: is there a path through the supplied code that breaks it? Check invariants that span more than one file especially closely; a single-file reading misses them. Follow data past the first function; attack error/fallback/timeout paths; probe empty/max/first/last/zero; invert call order; look for two parsers that disagree; name the permission check that is missing or on the wrong object. Defense-in-depth gaps behind a working Layer A are not findings. Low-impact hygiene is not a bounty.
 If an interesting path is outside this cell, declare vdh.sibling with seed + lens + reason instead of abandoning this cell.
 If you need a VM, build, prod config, or consumer repo that is not in SOURCE_DATA, declare vdh.wishlist with need + reason. Do not invent that dependency's behavior.
 You may also declare vdh.trace, vdh.gapfill, vdh.feedback, vvs.judgment, or vvs.fixing.

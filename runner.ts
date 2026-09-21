@@ -525,22 +525,33 @@ export async function runHarness(
 			"hunter",
 			hunts.some((hunt) => pending(hunt.id)),
 		);
-		await runPool(hunts, async (hunt) => {
-			const slice = sliced(hunter, { lens: hunt.lens, recon });
-			const result = await execute(
-				hunt.id,
-				hunter,
-				huntPrompt(slice.source, recon!, hunt.lens, hunt.pass, config, {
-					cell: hunt.id,
-					rejectedPatterns,
-					tool: hunt.tool,
-					omitted: slice.omitted,
-				}),
-				(value) => parseHunt(value, snapshot, config.limits.maxFindingsPerTask),
-			);
-			ingest(hunt.id, result?.value.findings ?? []);
-			if (result) absorb(hunt.id, result.tools, hunt.lens);
-		});
+		const byPass = new Map<number, HuntTask[]>();
+		for (const hunt of hunts) {
+			const group = byPass.get(hunt.pass) ?? [];
+			group.push(hunt);
+			byPass.set(hunt.pass, group);
+		}
+		for (const pass of [...byPass.keys()].sort((left, right) => left - right)) {
+			const group = byPass.get(pass)!;
+			const found = alreadyFound(candidates);
+			await runPool(group, async (hunt) => {
+				const slice = sliced(hunter, { lens: hunt.lens, recon });
+				const result = await execute(
+					hunt.id,
+					hunter,
+					huntPrompt(slice.source, recon!, hunt.lens, hunt.pass, config, {
+						cell: hunt.id,
+						rejectedPatterns,
+						alreadyFound: found,
+						tool: hunt.tool,
+						omitted: slice.omitted,
+					}),
+					(value) => parseHunt(value, snapshot, config.limits.maxFindingsPerTask),
+				);
+				ingest(hunt.id, result?.value.findings ?? []);
+				if (result) absorb(hunt.id, result.tools, hunt.lens);
+			});
+		}
 	}
 
 	async function validateUnvalidated(stage: PipelineStage): Promise<void> {
@@ -816,4 +827,19 @@ function rejectedPatterns(candidates: Map<string, Candidate>): string[] {
 		.map((candidate) => `${candidate.finding.attackClass}: ${candidate.finding.rootCause}`)
 		.sort()
 		.slice(0, 12);
+}
+
+function alreadyFound(candidates: Map<string, Candidate>): string[] {
+	return [
+		...new Set(
+			[...candidates.values()]
+				.filter((candidate) => candidate.status !== "rejected")
+				.map(
+					(candidate) =>
+						`${candidate.finding.title} (${candidate.finding.evidence[0]?.path ?? "?"}:${candidate.finding.evidence[0]?.startLine ?? "?"}) [${candidate.finding.attackClass}]`,
+				),
+		),
+	]
+		.sort()
+		.slice(0, 40);
 }

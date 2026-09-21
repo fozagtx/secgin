@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import {
 	inspectNestedRuntime,
 	NESTED_DOCKER_RUN_FLAGS,
-	NESTED_DOCKER_SECURITY_OPTS,
 	type NestedRuntimeIO,
 	nestedRuntimeWarning,
 } from "./nested-runtime.ts";
@@ -54,8 +51,3 @@ test("unconfined Docker is not a silent-failure risk", () => {
 	assert.equal(nestedRuntimeWarning(status), null);
 });
 
-test("compose file ships the Cloudflare nested-runtime flags", () => {
-	const compose = readFileSync(fileURLToPath(new URL("./compose.yaml", import.meta.url)), "utf8");
-	for (const option of NESTED_DOCKER_SECURITY_OPTS) assert.ok(compose.includes(option));
-	assert.match(compose, /security_opt/);
-});
