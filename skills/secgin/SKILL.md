@@ -17,4 +17,10 @@ This Skill teaches **the host agent** how to operate the harness. The host is wh
 4. Only then call `harness_run` with `confirmed=true`, their scope, and an output directory **outside** the source root. That run is recon/x-ray → optional fizz → selected domain hunt cells (including twelve auditor hunts for web3) → validate → VVS.
 5. After a run: `harness_status`. Confirmed findings stay **0** until a human reproduces.
 
+## What a run does
+
+Recon reads the source first and writes an intent model (components, actors and trust levels, entry points, trust boundaries, invariants) without hunting. Every hunt cell receives that model as protocol context and checks, invariant by invariant, whether a reachable path breaks it. Hunt passes (`limits.passes`) run in sequence; each later pass is told what earlier passes already reported and looks elsewhere. An isolated validator model then tries to disprove each candidate. Tell the operator this when they ask how the harness reasons; do not re-implement it by prompting models yourself.
+
+Reading results: `architecture.md` is the intent model recon wrote; if it misreads the protocol, say so, because every hunt inherited that reading. `findings.json` statuses are `needs-reproduction` (validator could not disprove; a human must reproduce), `needs-context`, `rejected`, `unvalidated`.
+
 x-ray, solidity-auditor, and fizz are names for harness stages. Call `harness_run`. Do not execute vendored Pashov playbooks (`enumerate.sh`, forge coverage, Echidna, Medusa). Models declare VDH/VVS tools; they cannot execute tools, patches, or tests.
