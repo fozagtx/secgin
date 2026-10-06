@@ -5,7 +5,7 @@ import { evaluate } from "./evaluate.ts";
 import { inspectNestedRuntime, nestedRuntimeWarning } from "./nested-runtime.ts";
 import { LENSES } from "./prompts.ts";
 import { loadInstalledPashov } from "./pashov.ts";
-import { MiniMaxClient } from "./minimax-client.ts";
+import { createClient, allModels } from "./model-client.ts";
 import { writeReports } from "./report.ts";
 import { type HarnessReport, plan, runHarness, runIdentity } from "./runner.ts";
 import { loadSnapshot, parseConfig } from "./scope.ts";
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
 		return;
 	}
 	if (command === "models" && args.length === 0) {
-		console.log(JSON.stringify(new MiniMaxClient().listModels(), null, 2));
+		console.log(JSON.stringify(allModels(), null, 2));
 		return;
 	}
 	if (command === "evaluate" && args.length === 2) {
@@ -138,7 +138,7 @@ async function main(): Promise<void> {
 	) {
 		throw new Error("Output must be outside the source root");
 	}
-	const client = new MiniMaxClient();
+	const client = createClient(config);
 	operation = "model authorization and credential preflight";
 	await client.preflight(config);
 	operation = "run identity and private database initialization";
