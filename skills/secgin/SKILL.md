@@ -24,3 +24,5 @@ Recon reads the source first and writes an intent model (components, actors and 
 Reading results: `architecture.md` is the intent model recon wrote; if it misreads the protocol, say so, because every hunt inherited that reading. `findings.json` statuses are `needs-reproduction` (validator could not disprove; a human must reproduce), `needs-context`, `rejected`, `unvalidated`.
 
 x-ray, solidity-auditor, and fizz are names for harness stages. Call `harness_run`. Do not execute vendored Pashov playbooks (`enumerate.sh`, forge coverage, Echidna, Medusa). Models declare VDH/VVS tools; they cannot execute tools, patches, or tests.
+
+The mdpsec packs are vendored under `mdpsec/` (`bug-bounty-hunting-prompts`, `should-i-submit`). Their rubrics are already inside the prompts (`mdpsec.ts` constants; see `mdpsec/HARNESS.md`). Never run the phase files, the browser/account/OOB tooling, or should-i-submit's live validation mode. The report's pre-submit gate answers NO, NOT YET, or CANNOT DECIDE SAFELY only — never YES.

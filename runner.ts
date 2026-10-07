@@ -17,6 +17,7 @@ import {
 	SYSTEM,
 	verdictPrompt,
 } from "./prompts.ts";
+import { loadInstalledMdpsec, type MdpsecInstall } from "./mdpsec.ts";
 import { loadInstalledPashov, type PashovInstall } from "./pashov.ts";
 import {
 	type Feedback,
@@ -151,6 +152,7 @@ export interface HarnessReport {
 	recon: ReturnType<typeof parseRecon> | null;
 	architecture: string | null;
 	pashov: PashovInstall;
+	mdpsec: MdpsecInstall;
 	fizz: FizzProposal | null;
 	coverage: CoverageCell[];
 	funnel: Funnel;
@@ -809,6 +811,7 @@ export async function runHarness(
 		recon,
 		architecture: recon?.architecture ?? null,
 		pashov: loadInstalledPashov(),
+		mdpsec: loadInstalledMdpsec(),
 		fizz,
 		coverage,
 		funnel: funnel(listed, coverage),

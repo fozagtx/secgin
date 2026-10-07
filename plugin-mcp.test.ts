@@ -66,7 +66,7 @@ test("plugin MCP lists harness tools and lists MiniMax models over stdio", async
 		assert.notEqual(models.result.isError, true);
 		const catalog = JSON.parse(models.result.content[0].text);
 		assert.ok(catalog.some((entry) => entry.provider === "minimax" && entry.id === "MiniMax-M2.7"));
-		assert.ok(!catalog.some((entry) => entry.provider === "openai"));
+		assert.ok(catalog.some((entry) => entry.provider === "openai"));
 	} finally {
 		child.kill("SIGTERM");
 	}

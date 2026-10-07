@@ -4,6 +4,7 @@ import { createInterface } from "node:readline/promises";
 import { evaluate } from "./evaluate.ts";
 import { inspectNestedRuntime, nestedRuntimeWarning } from "./nested-runtime.ts";
 import { LENSES } from "./prompts.ts";
+import { loadInstalledMdpsec } from "./mdpsec.ts";
 import { loadInstalledPashov } from "./pashov.ts";
 import { createClient, allModels } from "./model-client.ts";
 import { writeReports } from "./report.ts";
@@ -107,6 +108,7 @@ async function main(): Promise<void> {
 					},
 					vvs: ["vvs.dedup", "vvs.judgment", "vvs.fixing"],
 					pashov: loadInstalledPashov(),
+					mdpsec: loadInstalledMdpsec(),
 					pashovMapped: {
 						"x-ray": ["recon:architecture", "recon:threats", "recon:invariants", "recon"],
 						"solidity-auditor": Object.keys(LENSES.web3).map((id) => `hunt:web3:${id}:0`),

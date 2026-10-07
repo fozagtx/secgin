@@ -1,10 +1,20 @@
+import {
+	COUNTEREVIDENCE_RULE,
+	DUPLICATE_STANDARD,
+	HARDENING_MISS_GATE,
+	LEAD_NOT_REPORT,
+	MECHANISM_PORTFOLIO,
+	OWNED_TEST_ACCOUNT_TRAP,
+	PRE_SUBMIT_HARD_FAILURES,
+	SO_WHAT_TEST,
+} from "./mdpsec.ts";
 import { SOLIDITY_AUDITOR_LENSES } from "./pashov.ts";
 import type { Finding, Recon } from "./schema.ts";
 import type { HarnessConfig, Snapshot } from "./scope.ts";
 import { formatSourceFiles } from "./slice.ts";
 import { stageLine, toolCatalogText } from "./tools.ts";
 
-export const PROMPT_VERSION = "secgin-9";
+export const PROMPT_VERSION = "secgin-10";
 
 /**
  * Built-in specialist lenses. Web2 from Cloudflare VDH + 0xasen. AI and web2
@@ -188,6 +198,11 @@ ${impactLadder(lens)}
 ${rejected}${found}${omitted}
 A finding MUST state the threat model first: attacker capabilities, the guarantee/intent broken, and the trust boundary crossed. Then evidence. Then impact as a bounty writeup: who is the victim, what asset or privilege is lost, and how bad it is if an attacker ran this as a service. Vacuous claims ("a caller who can write the database can write the database") are invalid.
 Hunt like an attacker: For each invariant, trust boundary, and entry point in RECON_DATA that this lens touches, ask: is there a path through the supplied code that breaks it? Check invariants that span more than one file especially closely; a single-file reading misses them. Follow data past the first function; attack error/fallback/timeout paths; probe empty/max/first/last/zero; invert call order; look for two parsers that disagree; name the permission check that is missing or on the wrong object. Defense-in-depth gaps behind a working Layer A are not findings. Low-impact hygiene is not a bounty.
+${MECHANISM_PORTFOLIO}
+${SO_WHAT_TEST}
+${OWNED_TEST_ACCOUNT_TRAP}
+${HARDENING_MISS_GATE}
+Preconditions must list every attacker prerequisite in acquisition order and say where in SOURCE_DATA each one is obtainable; an unexplained victim id, token, role, or prepared state makes the finding a lead, not a candidate.
 If an interesting path is outside this cell, declare vdh.sibling with seed + lens + reason instead of abandoning this cell.
 If you need a VM, build, prod config, or consumer repo that is not in SOURCE_DATA, declare vdh.wishlist with need + reason. Do not invent that dependency's behavior.
 You may also declare vdh.trace, vdh.gapfill, vdh.feedback, vvs.judgment, or vvs.fixing.
@@ -209,10 +224,14 @@ Evaluate each relevant path once, in source order, then commit:
 2. Guards: does an existing check, modifier, invert, or later write already block the claimed effect?
 3. Attacker: are the stated capabilities actually granted by this source, not by an invented admin or infinite-capital assumption?
 4. Harm: is there a concrete victim distinct from "the caller harms themselves"? Name the loss (funds, records, takeover). If the only outcome is a local error or a nit, reject it.
-5. Delegation: if a model, memory, tool description, or MCP response sits on the path, a guardrail prompt is not a guard; only deterministic checks, resource-scoped authorization, isolation, or binding count.
+5. Delivery: can an attacker with only the stated capabilities obtain every prerequisite (victim identifier, token, role, state) from this source? ${OWNED_TEST_ACCOUNT_TRAP}
+6. So-What: ${SO_WHAT_TEST} ${HARDENING_MISS_GATE}
+7. Delegation: if a model, memory, tool description, or MCP response sits on the path, a guardrail prompt is not a guard; only deterministic checks, resource-scoped authorization, isolation, or binding count.
+${COUNTEREVIDENCE_RULE}
 Cite the exact original lines that support your conclusion.
 Use supported only for a source-supported hypothesis with no unresolved required context; it still requires a real reproduction.
-Use rejected for a disproved candidate and needs-context when dependencies, deployment or a test are needed to settle the theory.
+Use rejected for a disproved candidate, a hardening miss with no demonstrated outcome, or a lead (${LEAD_NOT_REPORT}).
+Use needs-context when exactly one bounded prerequisite, dependency, or deployment fact would settle it; missingContext must name that literal missing value, state, role, or action and the in-source place it could still come from. A vague "something might leak this somewhere" is rejected, not needs-context.
 If you need a missing environment to finish, declare vdh.wishlist. Do not call a test executed, passed or verified: no execution capability is provided.
 ${omittedLine(omitted)}Required keys: verdict (supported|rejected|needs-context), reason, evidence, missingContext. Optional: tools[].
 CANDIDATE_DATA=${JSON.stringify(finding)}
@@ -233,6 +252,8 @@ SOURCE_DATA=${source}`;
 export function feedbackPrompt(source: string, recon: Recon, notes: string, omitted: string[] = []): string {
 	return `${stageLine("vdh.feedback")}
 Rewrite queued hunt work from these validation failures, shallow cells, and misses. Sharper lenses only; do not file findings.
+${MECHANISM_PORTFOLIO}
+Each sharper lens must name the mechanism family, the surface, and the next concrete test; mark families already disproved as blocked so the next pass does not re-file them.
 Return notes plus sharperLenses[{cell,lens}]. Empty sharperLenses is valid. Optional: tools[].
 ${omittedLine(omitted)}FEEDBACK_DATA=${JSON.stringify({ notes })}
 RECON_DATA=${JSON.stringify(recon)}
@@ -242,8 +263,13 @@ SOURCE_DATA=${source}`;
 export function judgmentPrompt(source: string, finding: Finding, shortlist: string[], omitted: string[] = []): string {
 	return `${stageLine("vvs.judgment")}
 VVS judgment on a different model than discovery. You have only this snapshot — not production MCP, wiki, or live config.
+You are a hostile pre-submit reviewer for this one candidate. Evaluate only what the candidate already claims and cites. Do not hunt for a better bug, broaden scope, invent impact, or build a new chain to rescue it.
 Classify whether the candidate is exploitable from the supplied source, latent (real but missing deployment evidence), filed against the wrong component, or not a risk.
-not-a-risk includes real bugs with no bounty-grade impact (no named victim loss).
+not-a-risk includes real bugs with no bounty-grade impact (no named victim loss), fully intended behavior, hardening misses, and leads. Intended-but-overexposed behavior is latent only if the source names the consumer that makes it dangerous.
+${LEAD_NOT_REPORT}
+${PRE_SUBMIT_HARD_FAILURES}
+${COUNTEREVIDENCE_RULE}
+In reason, state in order: the hard failure that applies or "none"; the counterevidence you checked; the business intent (security bug | intended but overexposed | intended | unclear); the one exact next action a human must take before this could be submitted.
 Do not treat this as confirmed. Do not run tests. Optional: tools[].
 ${omittedLine(omitted)}Required keys: verdict (exploitable-in-source|latent|wrong-component|not-a-risk), reason, evidence, missingContext.
 SHORTLIST_DATA=${JSON.stringify(shortlist)}
@@ -263,6 +289,8 @@ SOURCE_DATA=${source}`;
 export function dedupPrompt(summaries: unknown[]): string {
 	return `${stageLine("vvs.dedup")}
 VVS dedup. You see a shortlist only — not the full repository. Decide whether a single fix would close several candidates.
+${DUPLICATE_STANDARD}
+The canonical is the candidate with the strongest proven delivery and impact, not the first or the longest. A merge cannot upgrade the canonical's severity unless the merged evidence proves the prerequisite. In reason, list the unique material facts carried from each duplicate, or "none".
 Return merges[{canonicalId, duplicateIds, reason}]. Empty merges is valid. Optional: tools[].
 SHORTLIST_DATA=${JSON.stringify(summaries)}`;
 }

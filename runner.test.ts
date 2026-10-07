@@ -377,6 +377,9 @@ test("escapes hostile report fields so generated markdown contains no active HTM
 		assert.ok(markdown.includes("&lt;script&gt;alert\\(1\\)&lt;/script&gt;"));
 		assert.ok(markdown.includes("&lt;svg onload=alert\\(1\\)&gt;"));
 		assert.ok(markdown.includes("&lt;b&gt;root&lt;/b&gt;"));
+		assert.ok(markdown.includes("Pre-submit gate"));
+		assert.ok(markdown.includes("## mdpsec prompt packs"));
+		assert.doesNotMatch(markdown, /Should you submit[^\n]*YES/);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

@@ -84,4 +84,5 @@ All keys required, unknown keys rejected.
 ## Notes
 
 - Vendored Pashov x-ray / solidity-auditor / fizz skills are reference material mapped onto stages (`pashov/HARNESS.md`); their scripts never run.
+- Vendored mdpsec prompt packs under `mdpsec/` contribute rubrics and a deterministic pre-submit gate only; their live phases, browser/account/OOB tooling, and should-i-submit live validation are never executed.
 - Rules for agents editing this repository: `AGENTS.md`.

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { closeSync, constants, fsyncSync, lstatSync, openSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { preSubmitGate } from "./mdpsec.ts";
 import type { HarnessReport } from "./runner.ts";
 
 function markdownText(value: string): string {
@@ -15,6 +16,7 @@ export function renderReport(report: HarnessReport): string {
 		"",
 		`Pipeline: **${report.status}**. Confirmed vulnerabilities: **0**.`,
 		"VDH discovers; VVS triages on a different model. Model-supported candidates are unverified hypotheses, not bounty-ready findings. No reproduction or patch was executed.",
+		"Pre-submit gate never returns YES: no candidate was reproduced.",
 		"Complete means all planned model tasks completed, not that the target is secure or all bugs were found.",
 		"",
 		`Snapshot: \`${report.snapshot}\``,
@@ -31,6 +33,13 @@ export function renderReport(report: HarnessReport): string {
 			(skill) => `- \`${markdownText(skill.name)}\` v${markdownText(skill.version)} → ${markdownText(skill.skillMd)}`,
 		),
 		"x-ray maps to VDH recon. solidity-auditor maps to twelve web3 hunt cells. fizz proposes invariant properties and is never executed.",
+		"",
+		"## mdpsec prompt packs",
+		"",
+		...report.mdpsec.packs.map(
+			(pack) => `- \`${markdownText(pack.name)}\` installed from \`${markdownText(pack.origin)}\` @ \`${markdownText(pack.commit)}\`.`,
+		),
+		"Live phases, browser, accounts, OOB, and should-i-submit live validation are never executed; rubrics are folded into hunt/validate/judgment/dedup prompts.",
 		"",
 		"## Models per stage",
 		"",
@@ -98,6 +107,7 @@ export function renderReport(report: HarnessReport): string {
 	];
 	for (const candidate of report.candidates) {
 		const finding = candidate.finding;
+		const gate = preSubmitGate(candidate);
 		lines.push(
 			`### ${markdownText(finding.title)}`,
 			"",
@@ -133,6 +143,11 @@ export function renderReport(report: HarnessReport): string {
 			candidate.fixProposal
 				? `VVS fix proposal (blocked, not applied): ${markdownText(candidate.fixProposal.notes)} — ${markdownText(candidate.fixProposal.blockReason)}`
 				: "VVS fix proposal: none.",
+			"",
+			`Pre-submit gate (mdpsec should-i-submit): **${gate.answer}**`,
+			`Why: ${markdownText(gate.why)}`,
+			`Do this next: ${markdownText(gate.next)}`,
+			`Do not run: ${markdownText(gate.doNotRun)}`,
 			"",
 			...(candidate.validation?.missingContext ?? []).map((value) => `- Required context: ${markdownText(value)}`),
 			"",
