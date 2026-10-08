@@ -9,7 +9,7 @@ const pluginRoot = dirname(fileURLToPath(import.meta.url));
 const TOOLS = [
 	{
 		name: "harness_models",
-		description: "List catalog models for recon, hunter, and validator. Offline. Hunter and validator must differ.",
+		description: "List catalog models (MiniMax, Anthropic, OpenAI, OpenRouter, DeepSeek, Google, OpenAI-compatible, coding agent) with credential presence for recon, hunter, and validator. Offline. Hunter and validator must differ.",
 		inputSchema: { type: "object", properties: {}, additionalProperties: false },
 	},
 	{
@@ -25,7 +25,7 @@ const TOOLS = [
 	{
 		name: "harness_run",
 		description:
-			"Run VDH then VVS against the operator's scope. Requires confirmed=true. Uses models already in scope.json. Never a demo target.",
+			"Run VDH then VVS against the operator's scope. Requires confirmed=true. Uses the provider models already in scope.json. Never a demo target.",
 		inputSchema: {
 			type: "object",
 			properties: {

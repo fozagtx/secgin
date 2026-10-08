@@ -1,5 +1,5 @@
 {
 	"name": "secgin",
 	"version": "0.1.0",
-	"description": "Authorized local-source VDH/VVS security research. No canned target."
+	"description": "Provider-agnostic VDH/VVS security research plugin (MiniMax, Anthropic, OpenAI, OpenRouter, DeepSeek, Google, OpenAI-compatible, coding agent). Agent Plugins 1.0 Skill plus MCP. No canned target."
 }

@@ -19,6 +19,7 @@ export interface CatalogModel {
 	id: string;
 	contextWindow?: number;
 	maxTokens?: number;
+	hasCredentials?: boolean;
 }
 
 export interface StageModelSelection {
@@ -71,6 +72,7 @@ export function suggestStageModels(catalog: CatalogModel[], current: ModelRef, f
 	const seen = new Set<string>();
 	const suggestions: ModelRef[] = [];
 	for (const entry of ranked) {
+		if (entry.hasCredentials === false) continue;
 		if (sameModel(entry, current) || (forbidden && sameModel(entry, forbidden))) continue;
 		if (seen.has(entry.provider)) continue;
 		seen.add(entry.provider);

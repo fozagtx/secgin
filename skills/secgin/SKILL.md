@@ -2,7 +2,7 @@
 name: secgin
 description: Guide for the local-source VDH/VVS security research harness. Use when the operator wants authorized Web2/Web3/AI source review, MCP tools harness_plan harness_run harness_status, x-ray, solidity-auditor, fizz, or Pashov skills. Not a canned audit product and not a live scanner.
 license: MIT
-compatibility: Requires a host that loads Agent Skills and MCP (Agent Plugins 1.0, or any CLI/cloud agent with those surfaces).
+compatibility: Requires a host that loads Agent Skills and MCP (Agent Plugins 1.0, Gemini CLI, or any CLI/cloud agent with those surfaces).
 ---
 
 # secgin
@@ -12,7 +12,7 @@ This Skill teaches **the host agent** how to operate the harness. The host is wh
 ## First actions
 
 1. Confirm the operator has a real `scope.json` beside a tree they control. Required keys are documented in the README section "scope.json". There is no example target.
-2. Call `harness_models`. Pick **three different catalog models** (recon, hunter, validator). Hunter ≠ validator. Hunt compute is the `{provider,id}` pairs in their `scope.json`.
+2. Call `harness_models`. Entries carry `hasCredentials`; only pick models whose provider has credentials. Pick **three different catalog models** (recon, hunter, validator) — prefer hunter and validator on different providers so they cross-check. Hunt compute is whatever `{provider,id}` pairs are in their `scope.json` (e.g. `openai/gpt-5`, `anthropic/claude-sonnet-4-5`, `minimax/MiniMax-M2.7`, `google/gemini-2.5-pro`, `openai-compatible/<local-model>`, `agent/coding-agent`).
 3. Call `harness_plan` with their `scope.json`. Fix the scope until it succeeds. Web3 plans must list twelve `hunt:web3:*` cells; ai plans list six `hunt:ai:*` cells.
 4. Only then call `harness_run` with `confirmed=true`, their scope, and an output directory **outside** the source root. That run is recon/x-ray → optional fizz → selected domain hunt cells (including twelve auditor hunts for web3) → validate → VVS.
 5. After a run: `harness_status`. Confirmed findings stay **0** until a human reproduces.

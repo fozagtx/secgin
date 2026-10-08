@@ -26,6 +26,14 @@ test("ranks live catalog entries by context window, one per other provider", () 
 	]);
 });
 
+test("skips catalog entries without credentials", () => {
+	const keyed = catalog.map((entry) => ({ ...entry, hasCredentials: true }));
+	keyed[2].hasCredentials = false;
+	assert.deepEqual(suggestStageModels(keyed, hunter, validator), [
+		{ provider: "provider-b", id: "model-largest" },
+	]);
+});
+
 test("parses blank, numbered suggestions, and provider/id", () => {
 	const suggestions = [{ provider: "provider-c", id: "model-large" }];
 	assert.deepEqual(parseStageChoice("", hunter, suggestions, catalog), { model: hunter });
