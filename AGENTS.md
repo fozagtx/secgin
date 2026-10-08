@@ -16,4 +16,4 @@ When editing this repository:
 - Do not add tests, fixtures, or scripts that are not required by a change. Do not add files that do not belong to the plugin package.
 - Prompt changes bump `PROMPT_VERSION` in `prompts.ts`.
 
-Install from this repository into the host you are using: `node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all`.
+Install from this repository into the host you are using: `node install-plugin.mjs --host minimax|codex|claude|gemini|cloud|dest|all`.

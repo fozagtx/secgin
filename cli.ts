@@ -18,17 +18,18 @@ import { HARNESS_TOOLS } from "./tools.ts";
 const HELP = `JSON worker for secgin (host-agnostic backbone, not a TUI).
 Install this repository into whichever CLI you use:
   git clone https://github.com/fozagtx/secgin
-  node install-plugin.mjs --host minimax|codex|claude|cloud|dest|all
+  node install-plugin.mjs --host minimax|codex|claude|gemini|cloud|dest|all
 The host agent calls MCP tools harness_models, harness_plan, harness_run, harness_status, harness_evaluate.
-  models                                List catalog model IDs from the worker (offline)
+  models                                List catalog models across providers with credential presence (offline)
   plan <scope.json>                      Validate YOUR scope and show planned work (offline)
   status <output-directory>              Summarize report.json from a finished run (offline)
   evaluate <report.json> <labels.json>   Score human-reviewed labels for YOUR report (offline)
   run <scope.json> <output-directory> --allow-remote-models [--keep-models]
-                                        Send the scoped source to the models in YOUR scope.json
+                                        Send the scoped source to the provider models named in YOUR scope.json
                                         Prompts before recon, hunt, validate and gapfill unless --keep-models
 Repeat the same run command to resume. Changed scope/source/prompts require a new output directory.
 Exit codes: 0 completed, 1 configuration/runtime error, 2 incomplete pipeline.
+Provider keys: MINIMAX_API_KEY, MINIMAX_CN_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY; HARNESS_OPENAI_COMPAT_BASE_URL/_API_KEY/_MODELS for Ollama, vLLM, LM Studio, Groq or any OpenAI-compatible endpoint; SECURITY_HARNESS_MODELS (JSON) adds catalog ids; SECGIN_AGENT_DIR enables the coding-agent provider.
 No target network requests, shell tools, test execution, transactions or automatic disclosure.
 There is no demo, mock client, or canned target.
 VDH stages (recon, hunt, validate, gapfill, dedup, trace, feedback, report, sibling, wishlist) and VVS stages (dedup, judgment, fixing) are tools the agent may declare at any time. The harness runs them; models cannot execute tools, patches, or tests.

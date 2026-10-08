@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -65,7 +65,7 @@ test("install-plugin copies a self-contained plugin for the installed mcode data
 		assert.equal(existsSync(join(root, "mcp.json")), true);
 		assert.equal(existsSync(join(root, "server.mjs")), true);
 		assert.equal(existsSync(join(root, "cli.ts")), true);
-		assert.equal(existsSync(join(root, "minimax-client.ts")), true);
+		assert.equal(existsSync(join(root, "model-client.ts")), true);
 		assert.equal(existsSync(join(root, "skills", "secgin", "SKILL.md")), true);
 		assert.equal(existsSync(join(root, "pi-client.ts")), false);
 		assert.equal(existsSync(join(root, "extension.ts")), false);
@@ -105,6 +105,26 @@ test("install-plugin --host claude writes a Claude plugin overlay", () => {
 		assert.equal(mcp.mcpServers.secgin.args[0], "${CLAUDE_PLUGIN_ROOT}/server.mjs");
 		const marketplace = JSON.parse(readFileSync(join(home, ".claude", "plugins", "marketplace.json"), "utf8"));
 		assert.equal(marketplace.plugins[0].source, "./secgin");
+	} finally {
+		rmSync(home, { recursive: true, force: true });
+	}
+});
+
+test("install-plugin --host gemini writes a Gemini CLI plugin and merges settings.json", () => {
+	const home = mkdtempSync(join(tmpdir(), "gemini-plugin-"));
+	try {
+		const geminiHome = join(home, ".gemini");
+		const settingsPath = join(geminiHome, "settings.json");
+		mkdirSync(geminiHome, { recursive: true });
+		writeFileSync(settingsPath, JSON.stringify({ theme: "x" }));
+		const result = install({ GEMINI_CLI_HOME: geminiHome }, ["--host", "gemini"]);
+		assert.equal(result.status, 0, result.stderr);
+		const root = join(geminiHome, "plugins", "secgin");
+		assert.equal(existsSync(join(root, "server.mjs")), true);
+		const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
+		assert.equal(settings.theme, "x");
+		assert.equal(settings.mcpServers.secgin.command, "node");
+		assert.equal(settings.mcpServers.secgin.args[0], join(root, "server.mjs"));
 	} finally {
 		rmSync(home, { recursive: true, force: true });
 	}

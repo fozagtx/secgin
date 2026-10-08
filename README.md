@@ -17,7 +17,7 @@ Pipeline: recon → hunt (sequential passes × lens) → validate → reverify �
 
 ## Install
 
-Requirements: Node.js >= 22.19 (no build step), `MINIMAX_API_KEY` (or `MINIMAX_CN_API_KEY`) in the environment that starts your agent.
+Requirements: Node.js >= 22.19 (no build step), plus the API key for whichever provider your `scope.json` names (`MINIMAX_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, ...) in the environment that starts your agent.
 
 ```bash
 git clone https://github.com/fozagtx/secgin && cd secgin
@@ -29,19 +29,50 @@ node install-plugin.mjs --host <host>
 | `claude` | `~/.claude/plugins/secgin` | or `claude plugin marketplace add fozagtx/secgin && claude plugin install secgin@secgin` |
 | `codex` | `~/.codex/plugins/secgin` | registered in `~/.agents/plugins/marketplace.json` |
 | `minimax` | `~/.minimax-code/plugins/secgin` | |
+| `gemini` | `~/.gemini/plugins/secgin` | registered in `~/.gemini/settings.json` (`GEMINI_CLI_HOME` overrides the root) |
 | `cloud` | `~/.secgin` | for remote agents: `node ~/.secgin/server.mjs --http --port 8787` and register `http://127.0.0.1:8787/mcp` |
 | `dest --path DIR` | any directory | every other agent, see below |
-| `all` | claude + codex + minimax | |
+| `all` | claude + codex + minimax + gemini | |
 
 Restart the agent afterwards. Re-run the same command to update.
 
-**Any other agent** (Cursor, Gemini CLI, Windsurf, Cline/Roo, VS Code, OpenCode, ...): install with `--host dest --path DIR`, point the agent at `DIR/skills/secgin/SKILL.md` (rules or skills directory), and register the MCP server using the absolute path the installer printed:
+**Any other agent** (Cursor, Windsurf, Cline/Roo, VS Code, OpenCode, ...): install with `--host dest --path DIR`, point the agent at `DIR/skills/secgin/SKILL.md` (rules or skills directory), and register the MCP server using the absolute path the installer printed:
 
 ```json
 { "mcpServers": { "secgin": { "command": "node", "args": ["/abs/secgin/server.mjs"] } } }
 ```
 
 Codex uses `[mcp_servers.secgin] command = "node" args = [...]` in `~/.codex/config.toml`; VS Code uses `servers.secgin` with `"type": "stdio"`; OpenCode uses `mcp.secgin` with `"type": "local"`. The agent should see tools `harness_models`, `harness_plan`, `harness_run`, `harness_status`, `harness_evaluate`.
+
+## Providers
+
+`harness_models` prints the catalog with a `hasCredentials` flag per entry — never the key itself.
+
+| provider | env key | example `{provider,id}` | note |
+| --- | --- | --- | --- |
+| `minimax` | `MINIMAX_API_KEY` | `minimax/MiniMax-M2.7` | also reads MiniMax Code `config.yaml` |
+| `minimax-cn` | `MINIMAX_CN_API_KEY` (or `MINIMAX_API_KEY`) | `minimax-cn/MiniMax-M3` | api.minimaxi.com |
+| `anthropic` | `ANTHROPIC_API_KEY` | `anthropic/claude-sonnet-4-5` | |
+| `openai` | `OPENAI_API_KEY` | `openai/gpt-5` | honors `OPENAI_BASE_URL`; sends `max_completion_tokens` |
+| `openrouter` | `OPENROUTER_API_KEY` | `openrouter/deepseek/deepseek-r1` | model ids keep their vendor prefix |
+| `deepseek` | `DEEPSEEK_API_KEY` | `deepseek/deepseek-reasoner` | |
+| `google` | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) | `google/gemini-2.5-pro` | |
+| `openai-compatible` | `HARNESS_OPENAI_COMPAT_API_KEY` (optional) | `openai-compatible/qwen2.5-coder` | needs `HARNESS_OPENAI_COMPAT_BASE_URL`; models from `HARNESS_OPENAI_COMPAT_MODELS` as `id:contextWindow:maxTokens` comma list, e.g. `HARNESS_OPENAI_COMPAT_BASE_URL=http://127.0.0.1:11434/v1 HARNESS_OPENAI_COMPAT_MODELS=qwen2.5-coder:32768:8192` for Ollama. Loopback hosts need no key; remote hosts require one. |
+| `agent` | `SECGIN_AGENT_DIR` | `agent/coding-agent` | file-exchange transport to a local coding agent; no API key |
+
+`SECURITY_HARNESS_MODELS` is a JSON array of `{provider,id,contextWindow,maxTokens}` that extends or overrides catalog entries for the providers above — new model ids without a code change.
+
+```json
+{
+	"models": {
+		"recon": { "provider": "google", "id": "gemini-2.5-pro" },
+		"hunter": { "provider": "openai", "id": "gpt-5" },
+		"validator": { "provider": "anthropic", "id": "claude-sonnet-4-5" }
+	}
+}
+```
+
+Hunter and validator must differ; putting them on different providers is recommended so they cross-check.
 
 ## Use
 

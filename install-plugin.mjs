@@ -17,12 +17,12 @@ const skipNames = new Set([
 	"AGENTS.md",
 	"scripts",
 ]);
-const HOSTS = ["minimax", "codex", "claude", "cloud", "dest", "all"];
+const HOSTS = ["minimax", "codex", "claude", "gemini", "cloud", "dest", "all"];
 
 const HELP = `Install this repository as an Agent Plugins 1.0 package into a host CLI.
 
   git clone https://github.com/fozagtx/secgin
-  node install-plugin.mjs --host minimax | codex | claude | cloud | dest (--path DIR, any other agent) | all
+  node install-plugin.mjs --host minimax | codex | claude | gemini | cloud | dest (--path DIR, any other agent) | all
   node install-plugin.mjs --host dest --path /your/plugin-dir
 
 The JSON worker is the backbone. --host selects the CLI adapter. dest is a generic copy for any other agent.
@@ -172,7 +172,7 @@ function installClaude() {
 	writeJson(path.join(target, ".claude-plugin", "plugin.json"), {
 		name: "secgin",
 		version: "0.1.0",
-		description: "Authorized local-source VDH/VVS security research. No canned target.",
+		description: "Provider-agnostic VDH/VVS security research plugin (MiniMax, Anthropic, OpenAI, OpenRouter, DeepSeek, Google, OpenAI-compatible, coding agent). Agent Plugins 1.0 Skill plus MCP. No canned target.",
 	});
 	writeJson(path.join(target, ".mcp.json"), {
 		mcpServers: {
@@ -188,6 +188,28 @@ function installClaude() {
 		lines: [`claude ${target}`, `claude marketplace ${marketplacePath}`],
 		targets: [target],
 	};
+}
+
+function installGemini() {
+	const geminiHome = process.env.GEMINI_CLI_HOME?.trim() || path.join(homedir(), ".gemini");
+	const target = path.join(geminiHome, "plugins", "secgin");
+	emptyDir(target);
+	copyWorker(target);
+	const settingsPath = path.join(geminiHome, "settings.json");
+	let settings = {};
+	if (existsSync(settingsPath)) {
+		const loaded = readJson(settingsPath);
+		if (!loaded || typeof loaded !== "object" || Array.isArray(loaded)) {
+			throw new Error(`${settingsPath} is not a settings object`);
+		}
+		settings = loaded;
+	}
+	if (!settings.mcpServers || typeof settings.mcpServers !== "object" || Array.isArray(settings.mcpServers)) {
+		settings.mcpServers = {};
+	}
+	settings.mcpServers["secgin"] = stdioMcp(path.join(target, "server.mjs"));
+	writeJson(settingsPath, settings);
+	return { lines: [`gemini ${target}`, `gemini settings ${settingsPath}`], targets: [target] };
 }
 
 function printGenericWiring(target) {
@@ -222,9 +244,10 @@ function install(host) {
 	if (host === "minimax") return installMinimax();
 	if (host === "codex") return installCodex();
 	if (host === "claude") return installClaude();
+	if (host === "gemini") return installGemini();
 	if (host === "cloud") return installCloud();
 	if (host === "dest") return installDest();
-	const installs = [installMinimax(), installCodex(), installClaude()];
+	const installs = [installMinimax(), installCodex(), installClaude(), installGemini()];
 	return {
 		lines: installs.flatMap((result) => result.lines),
 		targets: installs.flatMap((result) => result.targets),
@@ -240,7 +263,7 @@ try {
 		"Restart the host. Skill: secgin. MCP: harness_models, harness_plan, harness_run, harness_status, harness_evaluate.\n",
 	);
 	process.stdout.write(
-		"Hunt models come from YOUR scope.json, not from the host CLI. Set keys for the providers in that file.\n",
+		"Hunt models come from YOUR scope.json, not from the host CLI. Set the provider keys the worker needs (MINIMAX_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY, or HARNESS_OPENAI_COMPAT_*).\n",
 	);
 } catch (error) {
 	process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

@@ -2,7 +2,7 @@
 	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
 	"name": "secgin",
 	"version": "0.1.0",
-	"description": "Authorized local-source VDH/VVS security research. Host-agnostic Agent Plugins 1.0 package. No canned target.",
+	"description": "Provider-agnostic VDH/VVS security research plugin (MiniMax, Anthropic, OpenAI, OpenRouter, DeepSeek, Google, OpenAI-compatible, coding agent). Agent Plugins 1.0 Skill plus MCP. No canned target.",
 	"repository": "https://github.com/fozagtx/secgin",
 	"license": "MIT",
 	"keywords": ["security", "vdh", "vvs", "mcp", "agent-plugins"]
