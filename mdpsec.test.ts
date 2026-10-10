@@ -83,7 +83,7 @@ test("mdpsec rubrics are folded into stage prompts", () => {
 	assert.ok(judgment.includes("Lead-versus-report gate"));
 	assert.ok(dedupPrompt([]).includes("Duplicate standard"));
 	assert.ok(feedbackPrompt("source", recon, "notes").includes("Search control"));
-	assert.equal(PROMPT_VERSION, "secgin-10");
+	assert.equal(PROMPT_VERSION, "secgin-11");
 });
 
 test("docs mention mdpsec and forbid live execution", () => {
