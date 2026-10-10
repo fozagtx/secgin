@@ -14,7 +14,7 @@ import type { HarnessConfig, Snapshot } from "./scope.ts";
 import { formatSourceFiles } from "./slice.ts";
 import { stageLine, toolCatalogText } from "./tools.ts";
 
-export const PROMPT_VERSION = "secgin-10";
+export const PROMPT_VERSION = "secgin-11";
 
 /**
  * Built-in specialist lenses. Web2 from Cloudflare VDH + 0xasen. AI and web2
@@ -70,6 +70,9 @@ export const RECON_FOCI = {
 function builtinHuntCells(): string {
 	return [...Object.keys(LENSES.web2), ...Object.keys(LENSES.web3), ...Object.keys(LENSES.ai)].join(", ");
 }
+
+/** Escalation discipline distilled from the bug-bounty-triage skill (Sequester-AG), rewritten for a read-only source harness: axes are walked on cited lines, never by execution. */
+const ESCALATE_BEFORE_FILING = `Escalate before filing. Once a defect is real, re-attack its root cause along these axes: read-only reach to a write, one occurrence to repeatable or bulk, own data to another principal's, same tenant to cross-tenant, user role to admin role, local error to secret oracle, single bug to a chain. File the strongest variant whose every step is backed by cited lines in SOURCE_DATA. Severity follows cited reach only: an uncited escalation is an inference, stays inside the impact text labeled as inference, and never raises severity. A chain must cite evidence for every link. If the stronger variant needs a fact the source does not show, name it in preconditions instead of inventing it.`;
 
 export const SYSTEM = `You are a bug-bounty hunter inside an authorized, read-only security research harness (Cloudflare VDH + VVS).
 Your job is Web2 application, AI/agent, and smart-contract bugs that an attacker could actually cash in. Impact, impact, impact.
@@ -198,6 +201,7 @@ ${impactLadder(lens)}
 ${rejected}${found}${omitted}
 A finding MUST state the threat model first: attacker capabilities, the guarantee/intent broken, and the trust boundary crossed. Then evidence. Then impact as a bounty writeup: who is the victim, what asset or privilege is lost, and how bad it is if an attacker ran this as a service. Vacuous claims ("a caller who can write the database can write the database") are invalid.
 Hunt like an attacker: For each invariant, trust boundary, and entry point in RECON_DATA that this lens touches, ask: is there a path through the supplied code that breaks it? Check invariants that span more than one file especially closely; a single-file reading misses them. Follow data past the first function; attack error/fallback/timeout paths; probe empty/max/first/last/zero; invert call order; look for two parsers that disagree; name the permission check that is missing or on the wrong object. Defense-in-depth gaps behind a working Layer A are not findings. Low-impact hygiene is not a bounty.
+${ESCALATE_BEFORE_FILING}
 ${MECHANISM_PORTFOLIO}
 ${SO_WHAT_TEST}
 ${OWNED_TEST_ACCOUNT_TRAP}
@@ -207,7 +211,7 @@ If an interesting path is outside this cell, declare vdh.sibling with seed + len
 If you need a VM, build, prod config, or consumer repo that is not in SOURCE_DATA, declare vdh.wishlist with need + reason. Do not invent that dependency's behavior.
 You may also declare vdh.trace, vdh.gapfill, vdh.feedback, vvs.judgment, or vvs.fixing.
 Check every supplied file relevant to the lens and name coverage gaps. Report only specific defects with realistic attacker capabilities,
-identifiable victim impact and ordered local reproduction steps (isolated test setup — never a public-chain or production action).
+identifiable victim impact and ordered local reproduction steps (isolated test setup — never a public-chain or production action). Reproduction steps must not hide work: name the isolated setup, every target-specific precondition, which values a reproducer must replace, and the observable success condition (expected secure behavior versus actual result) at the decisive step. Vague directions like "authenticate", "capture", or "confirm" are not steps.
 Reject tautologies, style nits, self-harm and malicious-admin-by-design scenarios. Never invent an absent dependency's behavior.
 At most ${config.limits.maxFindingsPerTask} findings. Keep each text field concise. Empty findings are valid.
 Required finding keys: title, severity (critical|high|medium|low), attacker, intentBroken, attackClass, preconditions, trustBoundary, rootCause, impact (who is harmed, what is lost, how bad if an attacker productized this), reproduction, remediation, evidence[{path,startLine,endLine,quote}]. Also return coverage. Optional: tools[].
@@ -227,9 +231,10 @@ Evaluate each relevant path once, in source order, then commit:
 5. Delivery: can an attacker with only the stated capabilities obtain every prerequisite (victim identifier, token, role, state) from this source? ${OWNED_TEST_ACCOUNT_TRAP}
 6. So-What: ${SO_WHAT_TEST} ${HARDENING_MISS_GATE}
 7. Delegation: if a model, memory, tool description, or MCP response sits on the path, a guardrail prompt is not a guard; only deterministic checks, resource-scoped authorization, isolation, or binding count.
+8. Reproduction completeness: could a capable human run the ordered steps in an isolated setup with no hidden work — concrete preconditions, replaceable values named, a stated success condition? Hollow steps are a lead; use needs-context naming the missing step. supported requires steps a human can run.
 ${COUNTEREVIDENCE_RULE}
 Cite the exact original lines that support your conclusion.
-Use supported only for a source-supported hypothesis with no unresolved required context; it still requires a real reproduction.
+Use supported only for a source-supported hypothesis with no unresolved required context and a runnable reproduction; it still requires a human to execute that reproduction.
 Use rejected for a disproved candidate, a hardening miss with no demonstrated outcome, or a lead (${LEAD_NOT_REPORT}).
 Use needs-context when exactly one bounded prerequisite, dependency, or deployment fact would settle it; missingContext must name that literal missing value, state, role, or action and the in-source place it could still come from. A vague "something might leak this somewhere" is rejected, not needs-context.
 If you need a missing environment to finish, declare vdh.wishlist. Do not call a test executed, passed or verified: no execution capability is provided.
