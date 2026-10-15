@@ -112,8 +112,28 @@ All keys required, unknown keys rejected.
 
 `report.md` / `report.json`, `architecture.md` (the intent model recon wrote), `x-ray.md`, `fizz-proposed.md` (web3, invariant properties proposed, never executed), and `findings.json` with each candidate as `needs-reproduction`, `needs-context`, `rejected`, or `unvalidated`.
 
+## Reproducing candidates with Drost (optional helper)
+
+secgin stops at `needs-reproduction`: it reads source and never touches a running system. To reproduce a candidate yourself, you can add [Drost Community Edition](https://github.com/drost-ai/drost-community) as a second, separate MCP server. Drost is a Kali-based Docker container with live tools (HTTP repeater, headless browser, API/JWT/GraphQL audits, nuclei, sqlmap, a shell, ...). secgin never calls Drost, does not install it, and does not read its results.
+
+1. Install and start the container (needs Docker): `curl -fsSL https://drost.ai/community/install.sh | bash`, then check it with `docker exec drost-ai drost-mcp --self-test`.
+2. Register it next to secgin in the same agent:
+   - Claude Code: `claude mcp add --scope project drost -- docker exec -i drost-ai drost-mcp`
+   - Codex: `codex mcp add drost -- docker exec -i drost-ai drost-mcp`
+   - Gemini CLI: `gemini mcp add --scope project drost docker exec -i drost-ai drost-mcp`
+   - Any other MCP client: `{ "mcpServers": { "drost": { "command": "docker", "args": ["exec", "-i", "drost-ai", "drost-mcp"] } } }`
+3. Pick a `needs-reproduction` candidate from `findings.json` and run an isolated copy of the same source snapshot that you own (local service, test accounts, local chain fork).
+4. Ask your agent, for example:
+   > Reproduce candidate `<candidate id>` from ../secgin-out/api/findings.json with Drost against http://127.0.0.1:3000.
+
+   The agent creates a Drost engagement for that local target (`drost_engagement_create`) and follows only that candidate's reproduction steps.
+5. You decide whether it reproduced. Record it as a `classifications` entry (`true-positive` / `false-positive` / `unknown`) in your `labels.json` and run `harness_evaluate`. secgin's report still says confirmed 0; a Drost result is your evidence, not a secgin verdict.
+
+Use Drost only against systems you own or are explicitly authorized to test. The `scope.json` authorization covers source review, not live targets. Drost fits Web2, API, and AI/agent candidates best; Web3 candidates are usually reproduced with a local Foundry or Hardhat test instead.
+
 ## Notes
 
 - Vendored Pashov x-ray / solidity-auditor / fizz skills are reference material mapped onto stages (`pashov/HARNESS.md`); their scripts never run.
 - Vendored mdpsec prompt packs under `mdpsec/` contribute rubrics and a deterministic pre-submit gate only; their live phases, browser/account/OOB tooling, and should-i-submit live validation are never executed.
 - Rules for agents editing this repository: `AGENTS.md`.
+- Drost is an optional, separate helper for operator-driven reproduction (see "Reproducing candidates with Drost"); secgin never calls it.

@@ -26,3 +26,14 @@ Reading results: `architecture.md` is the intent model recon wrote; if it misrea
 x-ray, solidity-auditor, and fizz are names for harness stages. Call `harness_run`. Do not execute vendored Pashov playbooks (`enumerate.sh`, forge coverage, Echidna, Medusa). Models declare VDH/VVS tools; they cannot execute tools, patches, or tests.
 
 The mdpsec packs are vendored under `mdpsec/` (`bug-bounty-hunting-prompts`, `should-i-submit`). Their rubrics are already inside the prompts (`mdpsec.ts` constants; see `mdpsec/HARNESS.md`). Never run the phase files, the browser/account/OOB tooling, or should-i-submit's live validation mode. The report's pre-submit gate answers NO, NOT YET, or CANNOT DECIDE SAFELY only — never YES.
+
+## Reproducing with Drost (optional, separate MCP)
+
+The operator may also register [Drost Community Edition](https://github.com/drost-ai/drost-community) (`drost_*` tools, a live Kali container). It is a separate MCP server, not part of secgin: the harness tools and worker never call it, and the "no live scan, no exploit execution" rules above still bind every secgin stage.
+
+Use Drost tools only when the operator explicitly asks to reproduce a named candidate. Then:
+
+1. Confirm the target is a local or isolated copy the operator owns or is authorized to test. If that is not clear, ask before any `drost_*` call. Never point Drost at a production host, a public chain, or a third-party system.
+2. Create one engagement with `drost_engagement_create` listing only that target, and pass its `engagement_id` to every Drost call.
+3. Follow only the candidate's `reproduction` steps and `preconditions` from `findings.json`. Use the narrowest tool for each step (`drost_http_*` workbench, `drost_browser_*`, `drost_jwt_audit`, `drost_graphql_audit`, `drost_openapi_audit`). Do not run broad recon or scanning workflows (subfinder, amass, nmap, nuclei sweeps) that the steps do not need.
+4. Report the expected secure behavior, the actual result, and the Drost artifact paths. Do not call the candidate confirmed: the operator decides, and records it in `labels.json` for `harness_evaluate`.
