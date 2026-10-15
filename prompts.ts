@@ -14,7 +14,7 @@ import type { HarnessConfig, Snapshot } from "./scope.ts";
 import { formatSourceFiles } from "./slice.ts";
 import { stageLine, toolCatalogText } from "./tools.ts";
 
-export const PROMPT_VERSION = "secgin-11";
+export const PROMPT_VERSION = "secgin-12";
 
 /**
  * Built-in specialist lenses. Web2 from Cloudflare VDH + 0xasen. AI and web2
@@ -26,6 +26,9 @@ export const PROMPT_VERSION = "secgin-11";
  */
 const AI_DISCIPLINE =
 	"Prompt injection alone is not a finding; a guardrail prompt is not a security boundary; model output, tool descriptions, and MCP responses are untrusted input (as is durable memory). Name the attacker, affected principal, execution identity, resource, exact action, authority used, and impact.";
+
+export const REPORT_LANGUAGE =
+	"Report language (pashov solidity-auditor v4, Simplified Technical English): title is one clause, twelve words or fewer, present tense, active voice, and names the defect or its effect. rootCause is one sentence, twenty-five words or fewer, active voice, names who acts and what they get, with no -ing clause, no metaphor or slang (bricks, rug, griefing, footgun), and no severity adjectives (catastrophic, trivially); say what happens. Keep technical names (reentrancy, slippage, oracle, revert, rounding, nonce, delegatecall). Identifiers, attackClass labels, evidence quotes, and code are data: write them exactly as the source spells them.";
 
 export const LENSES = {
 	web2: {
@@ -185,7 +188,7 @@ export function huntPrompt(
 			: "";
 	const found =
 		options.alreadyFound.length > 0
-			? `Already found - do not repeat these:\nEarlier passes over this same source already reported the findings below. Do not report any of them again, even rephrased or with a different title. Look at files, functions, and guarantees not yet covered by this list.\n${options.alreadyFound.map((item) => `- ${item}`).join("\n")}\n`
+			? `Already found - do not repeat these:\nEarlier passes over this same source already reported the findings below. Do not report any of them again, even rephrased or with a different title. Look at files, functions, and guarantees not yet covered by this list. When a new finding has the same bug class as a listed one, reuse that attackClass label exactly.\n${options.alreadyFound.map((item) => `- ${item}`).join("\n")}\n`
 			: "";
 	const omitted =
 		options.omitted && options.omitted.length
@@ -214,6 +217,7 @@ Check every supplied file relevant to the lens and name coverage gaps. Report on
 identifiable victim impact and ordered local reproduction steps (isolated test setup — never a public-chain or production action). Reproduction steps must not hide work: name the isolated setup, every target-specific precondition, which values a reproducer must replace, and the observable success condition (expected secure behavior versus actual result) at the decisive step. Vague directions like "authenticate", "capture", or "confirm" are not steps.
 Reject tautologies, style nits, self-harm and malicious-admin-by-design scenarios. Never invent an absent dependency's behavior.
 At most ${config.limits.maxFindingsPerTask} findings. Keep each text field concise. Empty findings are valid.
+${REPORT_LANGUAGE}
 Required finding keys: title, severity (critical|high|medium|low), attacker, intentBroken, attackClass, preconditions, trustBoundary, rootCause, impact (who is harmed, what is lost, how bad if an attacker productized this), reproduction, remediation, evidence[{path,startLine,endLine,quote}]. Also return coverage. Optional: tools[].
 RECON_DATA=${JSON.stringify(recon)}
 SOURCE_DATA=${source}`;
