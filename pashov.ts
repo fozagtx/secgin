@@ -7,7 +7,7 @@ export const PASHOV_ORIGIN = "https://github.com/pashov/skills";
 export const PASHOV_SKILL_NAMES = ["x-ray", "solidity-auditor", "fizz"] as const;
 export type PashovSkillName = (typeof PASHOV_SKILL_NAMES)[number];
 
-/** Independently authored hunt cells matching pashov/solidity-auditor's twelve agents (v3). */
+/** Independently authored hunt cells matching pashov/solidity-auditor's twelve agents (v4.1). */
 export const SOLIDITY_AUDITOR_LENSES = {
 	"math-precision":
 		"Pashov math-precision agent. Map WAD/RAY/BPS and token/oracle decimals. Exploit wrong rounding (shares down, debt/fees up), 1-wei truncation, mul-before-div vs div-before-mul, downcasts, and first-depositor share inflation. Proof needs concrete numbers. Attack class: insolvency, rounding extraction. Do not run a fuzzer.",
@@ -99,8 +99,9 @@ export function pashovSlashPreview(skill: PashovSkillName, install: PashovInstal
 		return [
 			"Pashov solidity-auditor → twelve parallel VDH hunt cells (math-precision, access-control, economic-security, execution-trace, invariant, periphery, first-principles, asymmetry, boundary, numerical-gap, trust-gap, flow-gap).",
 			...shared,
-			"Not executed: bash find, bundle cat into /tmp, Agent spawns outside this orchestrator, ASCII banner as a product.",
+			"Not executed: bash find, bundle cat into /tmp, Agent spawns outside this orchestrator, assemble.sh, the .solidity-auditor/ memory ledger and run files, ASCII banner as a product.",
 			"Dedup/gates stay on VDH validate + VVS. Hunter ≠ validator.",
+			"Loop mode maps to sequential hunt passes; each later pass gets the already-found list.",
 			"Next: harness_plan with domains including web3, then harness_run.",
 		].join("\n");
 	}
