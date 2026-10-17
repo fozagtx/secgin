@@ -1,6 +1,6 @@
 ---
 name: mega-bug-hunt
-description: End-to-end bug bounty hunting pipeline for authorized programs (Intigriti/HackerOne/Bugcrowd). Use when the operator wants to hunt a bug bounty program from scratch to submission: scope analysis, passive recon, compliant live testing, APK reverse engineering, API testing with extracted credentials, triage, EV-based submit/hold decisions, and submission staging. Covers the full methodology that produced paid findings: Drost MCP driving, rate-limited probing, 6-agent parallel analysis, APK jadx decompilation to extract auth flows and API route maps, BOLA cross-account matrices, JWT manipulation, LB-instance pinning, the 7-Question Gate, and program-stats submission math. Trigger words: bug bounty, hunt, bughunt, recon the program, find the bug, submit the finding.
+description: End-to-end bug bounty hunting pipeline for authorized programs (Intigriti/HackerOne/Bugcrowd). Use when the operator wants to hunt a bug bounty program from scratch to submission: scope analysis, passive recon, compliant live testing, APK reverse engineering, API testing with extracted credentials, triage, EV-based submit/hold decisions, and submission staging. Covers the full methodology that produced paid findings: Drost MCP driving, rate-limited probing, 6-agent parallel analysis, APK jadx decompilation to extract auth flows and API route maps, code-graph indexing with bidirectional blast-radius and reachability analysis (bug amplification through call chains, one node's bug compounding into a bigger one along the edges), BOLA cross-account matrices, JWT manipulation, LB-instance pinning, the 7-Question Gate, and program-stats submission math. Trigger words: bug bounty, hunt, bughunt, recon the program, find the bug, submit the finding, graph the code, blast radius, call chain, dependency graph, impact mapping.
 license: MIT
 ---
 
@@ -122,6 +122,33 @@ With tokens for TWO of your own accounts:
 - Purchase/financial flows: with 0 balance, a success = critical, a clean refusal = normal.
 - NEVER enumerate real users' data. Two owned accounts is the compliant complete PoC.
 
+## Phase 7.5 - Graph-based bug amplification (ANY source: decompiled APK, archived JS, operator's tree)
+
+A bug at one node is rarely the finding. Code links to other code: a small defect that
+travels an edge (unvalidated param -> authz decision -> data sink) becomes a much
+bigger bug than either endpoint. Build the graph once, then hunt the EDGES, not the nodes.
+
+1. Index every source artifact into a code graph with scripts/graph-blast-radius.py:
+   `index <src-dir> -o graph.json`. Nodes: files, functions/methods, API routes, path
+   params. Edges: imports, cross-file calls, route -> handler -> params. The Phase 6
+   jadx route map IS a graph — index it, don't eyeball it.
+2. Blast EVERY candidate bug in both directions (`blast graph.json <seed>`):
+   - Backward reachability: which entry points (routes, handlers, main) reach the
+     buggy node. That is the attack surface rating. A bug nothing reaches is dead.
+   - Forward blast radius: which sinks the buggy node reaches (authz, session, SQL,
+     exec, file write, redirect, payment). That is the impact rating.
+3. Chains beat nodes: a Medium node flowing into a High sink is ONE High finding (the
+   chain), not two Mediums. Hunt the chain patterns first: unvalidated param into an
+   authz decision; error text into a logger that renders to output; one config value
+   into every route that reads it (systemic single-line).
+4. Persist graph.json + graph.dot with the engagement artifacts. Re-run blast on every
+   new candidate — the graph is the long-run asset: later phases query it for free,
+   and on a repeat program you re-index in minutes and start ahead.
+
+LESSON: both worked-example findings were EDGE traversals of the route map, not node
+bugs: users/{userId}/favorite-games (route -> id param -> cross-account read) and
+alg:none (token -> per-instance authz). The graph view is why they were findings.
+
 ## Phase 8 - Triage (7-Question Gate)
 
 Before ANY submission, apply CBH's gate. Q1: can an attacker use this RIGHT NOW, step by
@@ -160,7 +187,7 @@ Also verify the finding is STILL LIVE minutes before submission.
 - Keep test-account credentials in tokens.json for triage follow-up demos.
 - If triage pushes back: the JSONL evidence log is your appeal document.
 
-## Never-miss checklist (the whole skill in 12 lines)
+## Never-miss checklist (the whole skill in 13 lines)
 
 1. header.conf + host whitelist before ANY request
 2. passive before active; archived history before live guessing
@@ -174,3 +201,4 @@ Also verify the finding is STILL LIVE minutes before submission.
 10. stage field blocks as files; pbcopy; verify draft matches finding before submit
 11. discovery time inside the report if slot-delayed
 12. log everything; the evidence trail is also the triage-appeal trail
+13. index the code graph once; blast every candidate both directions; the chain is the finding, not the node

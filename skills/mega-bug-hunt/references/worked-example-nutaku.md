@@ -43,3 +43,9 @@ Signup controls not enforced (empty recaptcha_response accepted, no email verifi
 for login, no age attestation). Held: ~$50 EV, overlaps the program's
 "Confirmation Email (anything related with)" OOS clause, zero-tolerance program, new account.
 File: FINDING-signup-controls.md. Revisit only with a demonstrated impact chain.
+
+## Graph view (retroactive)
+Both submitted findings were edge traversals of the jadx route map, not node bugs:
+route -> userId param -> cross-account data (BOLA), and forged token -> per-instance
+authz (JWT). Indexed through scripts/graph-blast-radius.py, both chains are what a
+first blast pass surfaces — route reachability backward, sink impact forward.
