@@ -37,3 +37,19 @@ Use Drost tools only when the operator explicitly asks to reproduce a named cand
 2. Create one engagement with `drost_engagement_create` listing only that target, and pass its `engagement_id` to every Drost call.
 3. Follow only the candidate's `reproduction` steps and `preconditions` from `findings.json`. Use the narrowest tool for each step (`drost_http_*` workbench, `drost_browser_*`, `drost_jwt_audit`, `drost_graphql_audit`, `drost_openapi_audit`). Do not run broad recon or scanning workflows (subfinder, amass, nmap, nuclei sweeps) that the steps do not need.
 4. Report the expected secure behavior, the actual result, and the Drost artifact paths. Do not call the candidate confirmed: the operator decides, and records it in `labels.json` for `harness_evaluate`.
+
+## Long-term memory with Supermemory (optional, separate MCP)
+
+The operator may register [Supermemory](https://supermemory.ai/) as a separate MCP server so lessons persist across sessions and audits (Web2 or Web3). secgin tools and the worker never call it; it is host-agent memory only.
+
+Before a run, if Supermemory tools are present, recall lessons for the target's stack and domain (e.g. "web3 lending oracle", "web2 express auth") and use them to shape the scope and to read results. Never feed recalled text into a model as a finding.
+
+After `harness_status`, and again after the operator labels candidates, store one lesson per useful outcome:
+
+- Stack and domain, the bug class, and how it was found (which hunt cell, which invariant from `architecture.md`).
+- Outcome only as the operator stated it: reproduced, false positive, or unknown. Never store a candidate as confirmed on model output alone.
+- What to do differently next time (scope fix, missed component, recon misread).
+
+Do not store source code, secrets, credentials, private hostnames, or unreported exploit details. Store patterns, not payloads.
+
+When the operator asks to update the shared knowledge base, append the same generalized lessons to [`LESSONS.md`](LESSONS.md) (one entry per lesson, no target names unless public and already disclosed) and commit it to the repo. Do not change prompts or `PROMPT_VERSION` from a lesson unless the operator asks for a prompt change.

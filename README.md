@@ -112,6 +112,15 @@ All keys required, unknown keys rejected.
 
 `report.md` / `report.json`, `architecture.md` (the intent model recon wrote), `x-ray.md`, `fizz-proposed.md` (web3, invariant properties proposed, never executed), and `findings.json` with each candidate as `needs-reproduction`, `needs-context`, `rejected`, or `unvalidated`.
 
+## Long-term memory with Supermemory (optional helper)
+
+Register [Supermemory](https://supermemory.ai/) as a separate MCP server so your agent recalls lessons from earlier audits and stores new ones after each run. secgin never calls it.
+
+- Claude Code: `claude mcp add --transport http supermemory https://mcp.supermemory.ai/mcp`
+- Any other MCP client: `{ "mcpServers": { "supermemory": { "url": "https://mcp.supermemory.ai/mcp" } } }`
+
+Then ask your agent, e.g. "save lessons from ../secgin-out/api" or "push lessons to the repo". Shared, generalized lessons go to `skills/secgin/LESSONS.md`. Only patterns are stored, never source, secrets, or unconfirmed findings marked as confirmed.
+
 ## Reproducing candidates with Drost (optional helper)
 
 secgin stops at `needs-reproduction`: it reads source and never touches a running system. To reproduce a candidate yourself, you can add [Drost Community Edition](https://github.com/drost-ai/drost-community) as a second, separate MCP server. Drost is a Kali-based Docker container with live tools (HTTP repeater, headless browser, API/JWT/GraphQL audits, nuclei, sqlmap, a shell, ...). secgin never calls Drost, does not install it, and does not read its results.
