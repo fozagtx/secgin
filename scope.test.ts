@@ -23,15 +23,10 @@ function config(overrides: Record<string, unknown> = {}): Record<string, unknown
 	return {
 		version: 1,
 		name: "authorized audit",
-		authorization: { reference: "ticket-42", expiresAt: "2099-01-01T00:00:00Z", allowRemoteModels: false },
+		authorization: { reference: "ticket-42", expiresAt: "2099-01-01T00:00:00Z" },
 		root: ".",
 		files: ["src/app.ts"],
 		domains: ["web2", "web3"],
-		models: {
-			recon: { provider: "local", id: "recon" },
-			hunter: { provider: "local", id: "hunter" },
-			validator: { provider: "local", id: "validator" },
-		},
 		limits: standardLimits,
 		...overrides,
 	};
@@ -57,7 +52,7 @@ test("parses only complete, explicit configuration", () => {
 	for (const invalid of [
 		config({ extra: true }),
 		config({
-			authorization: { reference: "x", expiresAt: "2099-01-01T00:00:00Z", allowRemoteModels: false, extra: true },
+			authorization: { reference: "x", expiresAt: "2099-01-01T00:00:00Z", extra: true },
 		}),
 		config({ files: ["src/../secret.ts"] }),
 		config({ files: ["src\\app.ts"] }),
@@ -66,21 +61,15 @@ test("parses only complete, explicit configuration", () => {
 		config({ files: ["src/app.ts", "src/app.ts"] }),
 		config({ files: Array.from({ length: 501 }, (_, index) => `src/${index}.ts`) }),
 		config({ domains: ["web2", "web2"] }),
-		config({
-			models: {
-				recon: { provider: "x", id: "a" },
-				hunter: { provider: "x", id: "same" },
-				validator: { provider: "x", id: "same" },
-			},
-		}),
+		config({ models: { recon: { provider: "x", id: "a" } } }),
 		configWithLimit("maxCalls", 0),
 		configWithLimit("maxCalls", 1_001),
 		configWithLimit("concurrency", 9),
 		configWithLimit("passes", 4),
 		configWithLimit("maxFindingsPerTask", 21),
 		config({ name: " \t" }),
-		config({ authorization: { reference: "\n", expiresAt: "2099-01-01T00:00:00Z", allowRemoteModels: false } }),
-		config({ authorization: { reference: "x", expiresAt: "2025-02-30T00:00:00Z", allowRemoteModels: false } }),
+		config({ authorization: { reference: "\n", expiresAt: "2099-01-01T00:00:00Z" } }),
+		config({ authorization: { reference: "x", expiresAt: "2025-02-30T00:00:00Z" } }),
 	]) {
 		assert.throws(() => parseConfig(invalid));
 	}
@@ -122,7 +111,7 @@ test("fails closed for expiration, unsafe paths, secrets, links, oversized and i
 	cleanupFixture(t, directory);
 	assert.throws(() =>
 		parseConfig(
-			config({ authorization: { reference: "x", expiresAt: "2000-01-01T00:00:00Z", allowRemoteModels: false } }),
+			config({ authorization: { reference: "x", expiresAt: "2000-01-01T00:00:00Z" } }),
 		),
 	);
 	const expired = parseConfig(config());

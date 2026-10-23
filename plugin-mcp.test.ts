@@ -43,7 +43,9 @@ function waitListening(child) {
 	});
 }
 
-test("plugin MCP lists harness tools and lists catalog models over stdio", async () => {
+const TOOL_NAMES = ["harness_plan", "harness_run", "harness_next", "harness_submit", "harness_status", "harness_evaluate"];
+
+test("plugin MCP lists agent-driven harness tools and gates runs over stdio", async () => {
 	const child = spawn(process.execPath, [server], {
 		cwd: repoRoot,
 		stdio: ["pipe", "pipe", "pipe"],
@@ -55,19 +57,16 @@ test("plugin MCP lists harness tools and lists catalog models over stdio", async
 			clientInfo: { name: "test", version: "0" },
 		});
 		rpc(child, 2, "tools/list", {});
-		rpc(child, 3, "tools/call", { name: "harness_run", arguments: { scope: "scope.json", output: "out" } });
-		rpc(child, 4, "tools/call", { name: "harness_models", arguments: {} });
-		const [init, listed, denied, models] = await collectLines(child, 4);
+		rpc(child, 3, "tools/call", { name: "harness_run", arguments: { scope: "scope.json", output: "out", confirmed: false } });
+		rpc(child, 4, "tools/call", { name: "harness_next", arguments: {} });
+		const [init, listed, denied, noSession] = await collectLines(child, 4);
 		assert.equal(init.result.serverInfo.name, "secgin");
 		const names = listed.result.tools.map((tool) => tool.name);
-		assert.deepEqual(names, ["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"]);
+		assert.deepEqual(names, TOOL_NAMES);
 		assert.equal(denied.result.isError, true);
 		assert.match(denied.result.content[0].text, /confirmed=true/);
-		assert.notEqual(models.result.isError, true);
-		const catalog = JSON.parse(models.result.content[0].text);
-		assert.ok(catalog.some((entry) => entry.provider === "minimax" && entry.id === "MiniMax-M2.7"));
-		assert.ok(catalog.some((entry) => entry.provider === "anthropic"));
-		assert.ok(catalog.every((entry) => typeof entry.hasCredentials === "boolean"));
+		assert.equal(noSession.result.isError, true);
+		assert.match(noSession.result.content[0].text, /No active run/);
 	} finally {
 		child.kill("SIGTERM");
 	}
@@ -89,7 +88,7 @@ test("plugin MCP serves the same tools over loopback Streamable HTTP", async () 
 		const body = await listed.json();
 		assert.deepEqual(
 			body.result.tools.map((tool) => tool.name),
-			["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"],
+			TOOL_NAMES,
 		);
 		const denied = await fetch(endpoint, {
 			method: "POST",
@@ -98,7 +97,7 @@ test("plugin MCP serves the same tools over loopback Streamable HTTP", async () 
 				jsonrpc: "2.0",
 				id: 2,
 				method: "tools/call",
-				params: { name: "harness_run", arguments: { scope: "scope.json", output: "out" } },
+				params: { name: "harness_run", arguments: { scope: "scope.json", output: "out", confirmed: false } },
 			}),
 		});
 		const deniedBody = await denied.json();

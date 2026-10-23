@@ -1,10 +1,10 @@
 {
 	"name": "secgin",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"license": "MIT",
-	"description": "Provider-agnostic VDH/VVS security research plugin (MiniMax, Anthropic, OpenAI, OpenRouter, DeepSeek, Google, OpenAI-compatible, coding agent). Agent Plugins 1.0 Skill plus MCP.",
+	"description": "Agent-driven VDH/VVS security research harness: the driving agent is the only model, no API keys, local MCP. Agent Plugins 1.0 Skill plus MCP.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/fozagtx/secgin.git"

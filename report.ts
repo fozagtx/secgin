@@ -283,39 +283,107 @@ function renderFizz(report: HarnessReport): string {
 	return `${lines.join("\n")}\n`;
 }
 
-export function writeReports(directory: string, report: HarnessReport): void {
-	for (const [name, contents] of [
-		["report.json", JSON.stringify(report, null, 2)],
-		["report.md", renderReport(report)],
+/**
+ * Wave 1 artifact: one target-derived, testable hypothesis per line, drawn from the recon
+ * threat model and the candidate clusters discovered against it. JSONL so the driving agent
+ * (or a downstream tool) can stream it.
+ */
+export function renderHypotheses(report: HarnessReport): string {
+	const lines: string[] = [];
+	for (const invariant of report.recon?.invariants ?? []) {
+		lines.push(JSON.stringify({ source: "recon.invariant", hypothesis: `A reachable path breaks: ${invariant}`, status: "open" }));
+	}
+	for (const attackClass of report.recon?.attackClasses ?? []) {
+		lines.push(
+			JSON.stringify({ source: "recon.attackClass", id: attackClass.id, hypothesis: attackClass.methodology, status: "open" }),
+		);
+	}
+	for (const candidate of report.candidates) {
+		lines.push(
+			JSON.stringify({
+				source: "candidate",
+				id: candidate.id,
+				clusterId: candidate.clusterId,
+				hypothesis: candidate.finding.title,
+				attackClass: candidate.finding.attackClass,
+				trustBoundary: candidate.finding.trustBoundary,
+				status: candidate.status,
+				evidence: candidate.finding.evidence.map((cite) => `${cite.path}:${cite.startLine}-${cite.endLine}`),
+			}),
+		);
+	}
+	return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Wave 0/4 artifact: the machine-readable investigation plan and coverage reconciliation —
+ * which cells were planned, which ran, and where the candidates landed in the funnel.
+ */
+export function renderInvestigationPlan(report: HarnessReport): string {
+	return `${JSON.stringify(
+		{
+			version: 1,
+			name: report.name,
+			snapshot: report.snapshot,
+			status: report.status,
+			waves: {
+				"0-recon": ["recon:architecture", "recon:threats", "recon:invariants", "recon"],
+				"1-hypotheses": "HYPOTHESES.jsonl",
+				"2-investigate": report.coverage.filter((cell) => cell.task.startsWith("hunt:") || cell.task.startsWith("gapfill:")).map((cell) => cell.task),
+				"3-adjudicate": ["validate:*", "reverify:*", "vvs-dedup", "vvs-judgment:*", "vvs-fixing:*"],
+				"4-reconcile": "report.md / report.json (gated on FINAL_REPORT_AUTHORIZED)",
+			},
+			coverage: report.coverage,
+			funnel: report.funnel,
+			clusters: report.clusters,
+			trace: report.trace,
+		},
+		null,
+		2,
+	)}\n`;
+}
+
+function writeArtifact(directory: string, name: string, contents: string): void {
+	const destination = join(directory, name);
+	try {
+		if (!lstatSync(destination).isFile()) throw new Error("Report destination must be a regular file");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+	}
+	const temporary = join(directory, `.report-${randomUUID()}`);
+	const fd = openSync(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+	try {
+		writeFileSync(fd, contents);
+		fsyncSync(fd);
+	} finally {
+		closeSync(fd);
+	}
+	try {
+		renameSync(temporary, destination);
+	} catch (error) {
+		unlinkSync(temporary);
+		throw error;
+	}
+}
+
+/**
+ * Always writes the working artifacts (Waves 0-3). The final report (Wave 4, report.md /
+ * report.json) is written only when `final` is true — the server sets that when the operator
+ * has dropped a FINAL_REPORT_AUTHORIZED marker in the output directory.
+ */
+export function writeReports(directory: string, report: HarnessReport, options: { final: boolean }): void {
+	const working: [string, string][] = [
 		["architecture.md", `${report.architecture ?? report.recon?.summary ?? "Recon did not complete."}\n`],
 		["x-ray.md", renderXray(report)],
 		["fizz-proposed.md", renderFizz(report)],
 		["findings.json", renderFindingsJson(report)],
 		["FINDINGS-DETAIL.md", renderFindingsDetail(report)],
-	]) {
-		const destination = join(directory, name);
-		try {
-			if (!lstatSync(destination).isFile()) throw new Error("Report destination must be a regular file");
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-		}
-		const temporary = join(directory, `.report-${randomUUID()}`);
-		const fd = openSync(
-			temporary,
-			constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
-			0o600,
-		);
-		try {
-			writeFileSync(fd, contents);
-			fsyncSync(fd);
-		} finally {
-			closeSync(fd);
-		}
-		try {
-			renameSync(temporary, destination);
-		} catch (error) {
-			unlinkSync(temporary);
-			throw error;
-		}
+		["HYPOTHESES.jsonl", renderHypotheses(report)],
+		["INVESTIGATION_PLAN.json", renderInvestigationPlan(report)],
+	];
+	for (const [name, contents] of working) writeArtifact(directory, name, contents);
+	if (options.final) {
+		writeArtifact(directory, "report.json", JSON.stringify(report, null, 2));
+		writeArtifact(directory, "report.md", renderReport(report));
 	}
 }

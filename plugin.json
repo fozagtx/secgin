@@ -1,9 +1,15 @@
 {
 	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
 	"name": "secgin",
-	"version": "0.1.0",
-	"description": "Provider-agnostic VDH/VVS security research plugin (MiniMax, Anthropic, OpenAI, OpenRouter, DeepSeek, Google, OpenAI-compatible, coding agent). Agent Plugins 1.0 Skill plus MCP. No canned target.",
+	"version": "0.2.0",
+	"description": "Agent-driven VDH/VVS security research plugin: the host agent is the only model, no API keys, local MCP (harness_plan/run/next/submit). Agent Plugins 1.0 Skill plus MCP. No canned target.",
 	"repository": "https://github.com/fozagtx/secgin",
 	"license": "MIT",
-	"keywords": ["security", "vdh", "vvs", "mcp", "agent-plugins"]
+	"keywords": [
+		"security",
+		"vdh",
+		"vvs",
+		"mcp",
+		"agent-plugins"
+	]
 }

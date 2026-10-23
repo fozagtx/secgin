@@ -43,12 +43,9 @@ import { sliceBudget, sliceSource, type SourceSlice } from "./slice.ts";
 import { huntLooksCrashed } from "./mechanical.ts";
 import type { HarnessConfig, ModelRef, Snapshot } from "./scope.ts";
 import {
-	applyStageChoice,
-	type CatalogModel,
 	type ModelRole,
 	type PipelineStage,
-	sameModel,
-	type StageModelPrompt,
+	ROLE_MODELS,
 	type StageModelSelection,
 } from "./stage-models.ts";
 import type { RunStore } from "./store.ts";
@@ -143,7 +140,7 @@ export interface HarnessReport {
 	identity: string;
 	snapshot: string;
 	promptVersion: string;
-	models: HarnessConfig["models"];
+	models: Record<ModelRole, ModelRef>;
 	status: "complete" | "incomplete";
 	reservedCalls: number;
 	recordedTokens: { input: number; output: number };
@@ -240,16 +237,14 @@ export async function runHarness(
 	snapshot: Snapshot,
 	store: RunStore,
 	client: ModelClient,
-	options: { prompt?: StageModelPrompt; catalog?: CatalogModel[] } = {},
 ): Promise<HarnessReport> {
 	if (Date.parse(config.authorization.expiresAt) <= Date.now()) throw new Error("Authorization expired");
-	const models = {
-		recon: { ...config.models.recon },
-		hunter: { ...config.models.hunter },
-		validator: { ...config.models.validator },
+	const models: Record<ModelRole, ModelRef> = {
+		recon: { ...ROLE_MODELS.recon },
+		hunter: { ...ROLE_MODELS.hunter },
+		validator: { ...ROLE_MODELS.validator },
 	};
 	const stageModels: StageModelSelection[] = [];
-	const catalog = options.catalog ?? Object.values(models);
 	const declaredTools: { task: string; tools: DeclaredTool[] }[] = [];
 	const wishlist = new Map<string, WishlistItem>();
 	let siblingCount = 0;
@@ -258,36 +253,20 @@ export async function runHarness(
 		return store.get(id)?.status !== "done";
 	}
 
-	function contextWindowFor(model: ModelRef): number | undefined {
-		return catalog.find((entry) => sameModel(entry, model))?.contextWindow;
-	}
-
 	function sliced(
-		model: ModelRef,
+		_model: ModelRef,
 		extra: { prefer?: string[]; lens?: string; recon?: Recon | null; finding?: Finding | null } = {},
 	): SourceSlice {
 		return sliceSource(snapshot, {
 			...extra,
-			maxChars: sliceBudget(config.limits.maxInputChars, contextWindowFor(model)),
+			maxChars: sliceBudget(config.limits.maxInputChars, undefined),
 		});
 	}
 
-	async function select(stage: PipelineStage, role: ModelRole, workPending: boolean): Promise<ModelRef> {
-		let chosen = models[role];
-		if (workPending && options.prompt) {
-			chosen = applyStageChoice(
-				role,
-				await options.prompt.choose({
-					stage,
-					role,
-					current: models[role],
-					models,
-					catalog,
-				}),
-				models,
-			);
-			models[role] = chosen;
-		}
+	// secgin no longer switches providers: every role is fulfilled by the driving agent.
+	// select() only records which role the next stage runs as, so the report keeps its ledger.
+	async function select(stage: PipelineStage, role: ModelRole, _workPending: boolean): Promise<ModelRef> {
+		const chosen = models[role];
 		stageModels.push({ stage, role, model: { ...chosen } });
 		return chosen;
 	}
@@ -311,14 +290,9 @@ export async function runHarness(
 			store.fail(id, "authorization-expired");
 			return null;
 		}
-		const window = catalog.find((entry) => sameModel(entry, model))?.contextWindow;
 		const inputChars = SYSTEM.length + prompt.length;
 		if (inputChars > config.limits.maxInputChars) {
 			store.fail(id, "context-limit: narrow the explicitly scoped files");
-			return null;
-		}
-		if (window && inputChars / 4 > window * 0.25) {
-			store.fail(id, "context-limit: task exceeded 25% of the model context window");
 			return null;
 		}
 		const controller = new AbortController();
@@ -801,7 +775,7 @@ export async function runHarness(
 		identity: runIdentity(config, snapshot),
 		snapshot: snapshot.digest,
 		promptVersion: PROMPT_VERSION,
-		models: config.models,
+		models,
 		stageModels,
 		status: tasks.every((task) => task.status === "done") ? "complete" : "incomplete",
 		reservedCalls: tasks.reduce((total, task) => total + task.attempts, 0),

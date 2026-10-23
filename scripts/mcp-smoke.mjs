@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = process.env.SECGIN_HOME?.trim() || dirname(here);
 const server = join(root, "server.mjs");
-const expected = ["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"];
+const expected = ["harness_plan", "harness_run", "harness_next", "harness_submit", "harness_status", "harness_evaluate"];
 
 const child = spawn(process.execPath, [server], { cwd: root, stdio: ["pipe", "pipe", "pipe"] });
 child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })}\n`);

@@ -44,9 +44,10 @@ async function assertStdioTools(root) {
 		const [listed] = await collectLines(child, 1);
 		const names = listed.result.tools.map((tool) => tool.name);
 		assert.deepEqual(names, [
-			"harness_models",
 			"harness_plan",
 			"harness_run",
+			"harness_next",
+			"harness_submit",
 			"harness_status",
 			"harness_evaluate",
 		]);
@@ -64,8 +65,8 @@ test("install-plugin copies a self-contained plugin for the installed mcode data
 		assert.equal(existsSync(join(root, "plugin.json")), true);
 		assert.equal(existsSync(join(root, "mcp.json")), true);
 		assert.equal(existsSync(join(root, "server.mjs")), true);
-		assert.equal(existsSync(join(root, "cli.ts")), true);
-		assert.equal(existsSync(join(root, "model-client.ts")), true);
+		assert.equal(existsSync(join(root, "runner.ts")), true);
+		assert.equal(existsSync(join(root, "callback-client.ts")), true);
 		assert.equal(existsSync(join(root, "skills", "secgin", "SKILL.md")), true);
 		assert.equal(existsSync(join(root, "pi-client.ts")), false);
 		assert.equal(existsSync(join(root, "extension.ts")), false);
@@ -83,7 +84,7 @@ test("install-plugin --host codex writes Agent Plugins package and a personal ma
 		assert.equal(result.status, 0, result.stderr);
 		const root = join(home, ".codex", "plugins", "secgin");
 		assert.equal(existsSync(join(root, "plugin.json")), true);
-		assert.equal(existsSync(join(root, "cli.ts")), true);
+		assert.equal(existsSync(join(root, "runner.ts")), true);
 		const marketplace = JSON.parse(readFileSync(join(home, ".agents", "plugins", "marketplace.json"), "utf8"));
 		assert.equal(marketplace.plugins[0].name, "secgin");
 		assert.equal(marketplace.plugins[0].source.path, "./.codex/plugins/secgin");
@@ -135,7 +136,7 @@ test("install-plugin --host cloud copies the worker and prints a loopback HTTP c
 	try {
 		const result = install({ HOME: home }, ["--host", "cloud"]);
 		assert.equal(result.status, 0, result.stderr);
-		assert.equal(existsSync(join(home, ".secgin", "cli.ts")), true);
+		assert.equal(existsSync(join(home, ".secgin", "runner.ts")), true);
 		assert.match(result.stdout, /--http --port 8787/);
 		assert.match(result.stdout, /http:\/\/127\.0\.0\.1:8787\/mcp/);
 	} finally {
@@ -156,7 +157,7 @@ test("install-plugin --host dest copies into the operator path", () => {
 		assert.equal(result.status, 0, result.stderr);
 		assert.equal(existsSync(join(dest, "plugin.json")), true);
 		assert.equal(existsSync(join(dest, "server.mjs")), true);
-		assert.equal(existsSync(join(dest, "cli.ts")), true);
+		assert.equal(existsSync(join(dest, "runner.ts")), true);
 		assert.match(result.stdout, /Skill file:/);
 		assert.equal(result.stdout.includes(`"args":["${join(dest, "server.mjs")}"]`), true);
 		const reinstall = install({}, ["--host", "dest", "--path", dest]);

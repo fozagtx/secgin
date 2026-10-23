@@ -7,7 +7,6 @@ import { renderReport } from "./report.ts";
 import { type ModelClient, type ModelRequest, type ModelResponse, runHarness } from "./runner.ts";
 import type { HarnessConfig, Snapshot } from "./scope.ts";
 import { loadSnapshot } from "./scope.ts";
-import type { StageModelPrompt } from "./stage-models.ts";
 import { RunStore } from "./store.ts";
 import { promptStage } from "./tools.ts";
 
@@ -25,15 +24,10 @@ function config(overrides: Partial<HarnessConfig> = {}): HarnessConfig {
 	return {
 		version: 1,
 		name: "offline test",
-		authorization: { reference: "authorized-test", expiresAt: "2099-01-01T00:00:00Z", allowRemoteModels: false },
+		authorization: { reference: "authorized-test", expiresAt: "2099-01-01T00:00:00Z" },
 		root: ".",
 		files: ["target.ts"],
 		domains: ["web2"],
-		models: {
-			recon: { provider: "fake", id: "recon" },
-			hunter: { provider: "fake", id: "hunter" },
-			validator: { provider: "fake", id: "validator" },
-		},
 		limits: {
 			maxCalls: 50,
 			maxInputChars: 20_000,
@@ -175,11 +169,10 @@ async function run(
 	snapshot: Snapshot,
 	harnessConfig: HarnessConfig,
 	client: ModelClient,
-	prompt?: StageModelPrompt,
 ) {
 	const store = new RunStore(path.join(directory, "state"), "test-identity");
 	try {
-		return await runHarness(harnessConfig, snapshot, store, client, { prompt });
+		return await runHarness(harnessConfig, snapshot, store, client);
 	} finally {
 		store.close();
 	}
@@ -417,24 +410,17 @@ test("parses fenced JSON and hunts recon-invented attack classes", async () => {
 	}
 });
 
-test("prompts for a better model before each pending stage and uses the swapped hunter", async () => {
+test("records a fixed agent role for each stage in the report ledger", async () => {
 	const { directory, snapshot } = await fixture();
 	try {
-		const stages: string[] = [];
-		const prompt: StageModelPrompt = {
-			async choose(request) {
-				stages.push(`${request.stage}:${request.role}`);
-				if (request.role === "hunter") return { provider: "fake", id: "hunter-better" };
-				return request.current;
-			},
-		};
 		const client = new FakeClient((request) =>
 			reply(request, { hunt: { coverage: "target.ts", findings: [finding()] } }),
 		);
-		const report = await run(directory, snapshot, config(), client, prompt);
-		assert.deepEqual(stages, ["recon:recon", "hunt:hunter", "validate:validator", "feedback:hunter"]);
-		assert.ok(client.requests.some((request) => request.model.id === "hunter-better"));
-		assert.equal(report.stageModels.find((entry) => entry.stage === "hunt")?.model.id, "hunter-better");
+		const report = await run(directory, snapshot, config(), client);
+		assert.equal(report.stageModels.find((entry) => entry.stage === "hunt")?.model.provider, "agent");
+		assert.equal(report.stageModels.find((entry) => entry.stage === "hunt")?.model.id, "hunter");
+		assert.equal(report.stageModels.find((entry) => entry.stage === "validate")?.model.id, "validator");
+		assert.ok(client.requests.every((request) => request.model.provider === "agent"));
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

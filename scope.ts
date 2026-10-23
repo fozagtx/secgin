@@ -16,16 +16,10 @@ export interface HarnessConfig {
 	authorization: {
 		reference: string;
 		expiresAt: string;
-		allowRemoteModels: boolean;
 	};
 	root: string;
 	files: string[];
 	domains: Domain[];
-	models: {
-		recon: ModelRef;
-		hunter: ModelRef;
-		validator: ModelRef;
-	};
 	limits: {
 		maxCalls: number;
 		maxInputChars: number;
@@ -183,11 +177,6 @@ function relativePath(value: unknown, location: string, allowDot: boolean): stri
 	return candidate;
 }
 
-function model(value: unknown, location: string): ModelRef {
-	const result = object(value, location, ["provider", "id"]);
-	return { provider: text(result.provider, `${location}.provider`, 200), id: text(result.id, `${location}.id`, 500) };
-}
-
 export function parseConfig(value: unknown): HarnessConfig {
 	const config = object(value, "config", [
 		"version",
@@ -196,17 +185,10 @@ export function parseConfig(value: unknown): HarnessConfig {
 		"root",
 		"files",
 		"domains",
-		"models",
 		"limits",
 	]);
 	if (config.version !== 1) fail("config.version must be 1");
-	const authorization = object(config.authorization, "config.authorization", [
-		"reference",
-		"expiresAt",
-		"allowRemoteModels",
-	]);
-	if (typeof authorization.allowRemoteModels !== "boolean")
-		fail("config.authorization.allowRemoteModels must be a boolean");
+	const authorization = object(config.authorization, "config.authorization", ["reference", "expiresAt"]);
 	const filesValue = config.files;
 	if (!Array.isArray(filesValue) || filesValue.length === 0 || filesValue.length > MAX_FILES) {
 		fail(`config.files must be a non-empty array with at most ${MAX_FILES} entries`);
@@ -223,15 +205,6 @@ export function parseConfig(value: unknown): HarnessConfig {
 	}
 	const domains = domainsValue as Domain[];
 	if (new Set(domains).size !== domains.length) fail("config.domains must not contain duplicates");
-	const modelsValue = object(config.models, "config.models", ["recon", "hunter", "validator"]);
-	const models = {
-		recon: model(modelsValue.recon, "config.models.recon"),
-		hunter: model(modelsValue.hunter, "config.models.hunter"),
-		validator: model(modelsValue.validator, "config.models.validator"),
-	};
-	if (models.hunter.provider === models.validator.provider && models.hunter.id === models.validator.id) {
-		fail("config.models.hunter and config.models.validator must differ");
-	}
 	const limitsValue = object(config.limits, "config.limits", Object.keys(LIMITS));
 	const limits = {
 		maxCalls: positiveInteger(limitsValue.maxCalls, "config.limits.maxCalls", LIMITS.maxCalls),
@@ -256,12 +229,10 @@ export function parseConfig(value: unknown): HarnessConfig {
 		authorization: {
 			reference: text(authorization.reference, "config.authorization.reference"),
 			expiresAt: validateExpiry(authorization.expiresAt, "config.authorization.expiresAt"),
-			allowRemoteModels: authorization.allowRemoteModels,
 		},
 		root: relativePath(config.root, "config.root", true),
 		files,
 		domains,
-		models,
 		limits,
 	};
 }
