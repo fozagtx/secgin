@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { closeSync, constants, fsyncSync, lstatSync, openSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { preSubmitGate } from "./mdpsec.ts";
+import type { PriorFinding } from "./corpus.ts";
 import type { HarnessReport } from "./runner.ts";
 
 function markdownText(value: string): string {
@@ -61,6 +62,10 @@ export function renderReport(report: HarnessReport): string {
 			(value) => `- Extra attack class \`${markdownText(value.id)}\`: ${markdownText(value.methodology)}`,
 		),
 		...(report.recon?.missingContext ?? []).map((value) => `- Missing context: ${markdownText(value)}`),
+		"",
+		"## Prior art (Web3 Audit Database)",
+		"",
+		...priorArtLines(report),
 		"",
 		"## Filtering funnel",
 		"",
@@ -222,8 +227,32 @@ export function renderFindingsDetail(report: HarnessReport): string {
 			markdownText(finding.rootCause),
 			"",
 		);
+		const similar = report.priorArt.candidates[candidate.id] ?? [];
+		if (similar.length) {
+			lines.push("Similar past public findings (check the original report; not evidence for this target):", "");
+			for (const item of similar) lines.push(`- ${priorLine(item)}`);
+			lines.push("");
+		}
 	}
 	return lines.join("\n");
+}
+
+function priorLine(item: PriorFinding): string {
+	const where = [item.firm, item.project, item.year ? String(item.year) : ""].filter(Boolean).join(", ");
+	const link = item.url ? ` <${item.url.replace(/[<>\s]/g, "")}>` : "";
+	return `[${markdownText(item.severity)}] ${markdownText(item.title)} — ${markdownText(where)} \`${markdownText(item.uid)}\`${link}`;
+}
+
+function priorArtLines(report: HarnessReport): string[] {
+	const use = report.priorArt;
+	if (use.status === "not-web3") return ["Not used: no web3 domain in scope."];
+	if (use.status === "not-installed")
+		return ["Not used: corpus not installed. Ask the agent to call `harness_corpus` with action=sync, then rerun."];
+	const matched = Object.keys(use.candidates).length;
+	return [
+		`Release \`${markdownText(use.release)}\` from https://web3-audits.dicksonwu.xyz/ fed past findings to ${Object.keys(use.cells).length} web3 hunt cells as untrusted pattern hints. ${matched} candidates have similar past findings (listed in FINDINGS-DETAIL.md and report.json).`,
+		"Corpus records are AI-assisted extractions of public reports: a similar past finding is a lead for known-issue and severity checks, not evidence. Quoted text keeps its publisher's rights.",
+	];
 }
 
 function renderXray(report: HarnessReport): string {

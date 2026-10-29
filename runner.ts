@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { CORPUS_RELEASE, corpusInstalled, type PriorFinding, priorArtForLenses, similarPriorFindings, web3LensOfCell } from "./corpus.ts";
 import { extractJsonObject, isProviderErrorPayload } from "./json.ts";
 import { inspectNestedRuntime, type NestedRuntimeStatus } from "./nested-runtime.ts";
 import {
@@ -162,7 +163,16 @@ export interface HarnessReport {
 	trace: { edges: { fromPath: string; toPath: string }[]; missing: string[] };
 	nestedRuntime: NestedRuntimeStatus;
 	stageModels: StageModelSelection[];
+	priorArt: PriorArtUse;
 	candidates: Candidate[];
+}
+
+export interface PriorArtUse {
+	source: "web3-audit-database";
+	release: string;
+	status: "used" | "not-installed" | "not-web3";
+	cells: Record<string, string[]>;
+	candidates: Record<string, PriorFinding[]>;
 }
 
 export function runIdentity(config: HarnessConfig, snapshot: Snapshot): string {
@@ -240,7 +250,7 @@ export async function runHarness(
 	snapshot: Snapshot,
 	store: RunStore,
 	client: ModelClient,
-	options: { prompt?: StageModelPrompt; catalog?: CatalogModel[] } = {},
+	options: { prompt?: StageModelPrompt; catalog?: CatalogModel[]; corpusDir?: string | null } = {},
 ): Promise<HarnessReport> {
 	if (Date.parse(config.authorization.expiresAt) <= Date.now()) throw new Error("Authorization expired");
 	const models = {
@@ -543,6 +553,7 @@ export async function runHarness(
 					hunter,
 					huntPrompt(slice.source, recon!, hunt.lens, hunt.pass, config, {
 						cell: hunt.id,
+						priorArt: priorArtFor(hunt.id),
 						rejectedPatterns,
 						alreadyFound: found,
 						tool: hunt.tool,
@@ -580,6 +591,22 @@ export async function runHarness(
 				candidate.validation?.verdict === "supported" ? "needs-reproduction" : (candidate.validation?.verdict ?? "unvalidated");
 			if (result) absorb(`validate:${candidate.id}`, result.tools, candidate.finding.attackClass);
 		});
+	}
+
+	const corpusDirectory = options.corpusDir ?? null;
+	const priorArt: PriorArtUse = {
+		source: "web3-audit-database",
+		release: CORPUS_RELEASE,
+		status: !config.domains.includes("web3") ? "not-web3" : corpusDirectory && corpusInstalled(corpusDirectory) ? "used" : "not-installed",
+		cells: {},
+		candidates: {},
+	};
+	const priorByLens = priorArt.status === "used" ? await priorArtForLenses(corpusDirectory!, snapshot) : new Map<string, PriorFinding[]>();
+	function priorArtFor(cell: string): PriorFinding[] | undefined {
+		const lens = web3LensOfCell(cell);
+		const prior = lens ? priorByLens.get(lens) : undefined;
+		if (prior?.length) priorArt.cells[cell] = prior.map((item) => item.uid);
+		return prior;
 	}
 
 	const trace = traceDependencies(snapshot.files);
@@ -795,6 +822,14 @@ export async function runHarness(
 	const listed = [...candidates.values()]
 		.sort((a, b) => a.id.localeCompare(b.id))
 		.map((candidate) => ({ ...candidate, origins: candidate.origins.sort() }));
+	if (priorArt.status === "used") {
+		const similar = await similarPriorFindings(
+			corpusDirectory!,
+			listed.filter((candidate) => candidate.status !== "rejected"),
+			snapshot,
+		);
+		priorArt.candidates = Object.fromEntries([...similar].filter(([, rows]) => rows.length));
+	}
 	return {
 		version: 1,
 		name: config.name,
@@ -820,6 +855,7 @@ export async function runHarness(
 		declaredTools,
 		trace,
 		nestedRuntime: inspectNestedRuntime(),
+		priorArt,
 		candidates: listed,
 	};
 }

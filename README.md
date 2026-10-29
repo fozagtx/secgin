@@ -42,7 +42,7 @@ Restart the agent afterwards. Re-run the same command to update.
 { "mcpServers": { "secgin": { "command": "node", "args": ["/abs/secgin/server.mjs"] } } }
 ```
 
-Codex uses `[mcp_servers.secgin] command = "node" args = [...]` in `~/.codex/config.toml`; VS Code uses `servers.secgin` with `"type": "stdio"`; OpenCode uses `mcp.secgin` with `"type": "local"`. The agent should see tools `harness_models`, `harness_plan`, `harness_run`, `harness_status`, `harness_evaluate`.
+Codex uses `[mcp_servers.secgin] command = "node" args = [...]` in `~/.codex/config.toml`; VS Code uses `servers.secgin` with `"type": "stdio"`; OpenCode uses `mcp.secgin` with `"type": "local"`. The agent should see tools `harness_models`, `harness_plan`, `harness_run`, `harness_status`, `harness_evaluate`, `harness_corpus`.
 
 ## Providers
 
@@ -81,6 +81,10 @@ Write a `scope.json` beside or above the code, then ask your agent:
 > Audit ./api with secgin. Scope is ./api/scope.json, output to ../secgin-out/api.
 
 The Skill walks the agent through `harness_models` → `harness_plan` (offline validation; names the wrong key) → `harness_run` (`confirmed=true`, output outside the source root) → `harness_status`. Ask it to re-run with the same output directory to resume. After you reproduce candidates, hand it a `labels.json` and ask for `harness_evaluate` to score the run.
+
+### Prior art
+
+For web3 scopes, ask the agent to install the [Web3 Audit Database](https://web3-audits.dicksonwu.xyz/) once (`harness_corpus` sync, ~106 MB). Runs then feed each auditor cell matching past public findings as pattern hints and list similar past findings per candidate. Ask the agent to search it for known issues before you submit. Past findings are reference data, never evidence.
 
 ### scope.json
 
