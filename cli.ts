@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { corpusDir, corpusEnabled, corpusStatus, searchCorpus, syncCorpus } from "./corpus.ts";
 import { evaluate } from "./evaluate.ts";
 import { inspectNestedRuntime, nestedRuntimeWarning } from "./nested-runtime.ts";
 import { LENSES } from "./prompts.ts";
@@ -19,11 +20,12 @@ const HELP = `JSON worker for secgin (host-agnostic backbone, not a TUI).
 Install this repository into whichever CLI you use:
   git clone https://github.com/fozagtx/secgin
   node install-plugin.mjs --host minimax|codex|claude|gemini|cloud|dest|all
-The host agent calls MCP tools harness_models, harness_plan, harness_run, harness_status, harness_evaluate.
+The host agent calls MCP tools harness_models, harness_plan, harness_run, harness_status, harness_evaluate, harness_corpus.
   models                                List catalog models across providers with credential presence (offline)
   plan <scope.json>                      Validate YOUR scope and show planned work (offline)
   status <output-directory>              Summarize report.json from a finished run (offline)
   evaluate <report.json> <labels.json>   Score human-reviewed labels for YOUR report (offline)
+  corpus status|sync|search <query.json> Web3 Audit Database prior-art corpus (sync downloads the pinned release)
   run <scope.json> <output-directory> --allow-remote-models [--keep-models]
                                         Send the scoped source to the provider models named in YOUR scope.json
                                         Prompts before recon, hunt, validate and gapfill unless --keep-models
@@ -47,6 +49,7 @@ const SAFE_ERROR_PREFIXES = [
 	"No credentials for provider ",
 	"Model context budget exceeded",
 	"secgin run store:",
+	"Corpus ",
 ];
 
 let operation = "command parsing";
@@ -68,6 +71,33 @@ async function main(): Promise<void> {
 		const report: HarnessReport = JSON.parse(await readFile(resolve(args[0]), "utf8"));
 		const labels: unknown = JSON.parse(await readFile(resolve(args[1]), "utf8"));
 		console.log(JSON.stringify(evaluate(report, labels), null, 2));
+		return;
+	}
+	if (command === "corpus" && (args[0] === "status" || args[0] === "sync") && args.length === 1) {
+		operation = "corpus";
+		const dir = corpusDir();
+		console.log(JSON.stringify(args[0] === "sync" ? await syncCorpus(dir) : corpusStatus(dir), null, 2));
+		return;
+	}
+	if (command === "corpus" && args[0] === "search" && args.length === 2) {
+		operation = "corpus";
+		const query = JSON.parse(args[1]!) as Record<string, unknown>;
+		const list = (value: unknown) =>
+			Array.isArray(value) ? value.map(String) : typeof value === "string" && value.trim() ? [value] : undefined;
+		console.log(
+			JSON.stringify(
+				await searchCorpus(corpusDir(), {
+					text: typeof query.query === "string" ? query.query : undefined,
+					leaves: list(query.leaf),
+					severities: list(query.severity),
+					languages: list(query.language),
+					project: typeof query.project === "string" ? query.project : undefined,
+					limit: typeof query.limit === "number" ? query.limit : undefined,
+				}),
+				null,
+				2,
+			),
+		);
 		return;
 	}
 	if (command === "status" && args.length === 1) {
@@ -167,6 +197,7 @@ async function main(): Promise<void> {
 		const report = await runHarness(config, snapshot, store, client, {
 			prompt,
 			catalog: client.listModels(),
+			corpusDir: corpusEnabled() ? corpusDir() : null,
 		});
 		operation = "private report writing";
 		writeReports(output, report);

@@ -63,6 +63,29 @@ const TOOLS = [
 			additionalProperties: false,
 		},
 	},
+	{
+		name: "harness_corpus",
+		description:
+			"Web3 Audit Database (https://web3-audits.dicksonwu.xyz/, 180k past public audit findings). action=status|sync|search. sync downloads the pinned release once (~106 MB, checksum-verified); harness_run then feeds matching past findings to web3 hunt cells and lists similar past findings per candidate. search is offline lexical lookup for known-issue, severity, and pattern checks. Reference data only, never evidence.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				action: { type: "string", enum: ["status", "sync", "search"] },
+				query: { type: "string", description: "search: words or \"quoted phrases\" matched in title and body" },
+				leaf: {
+					type: "array",
+					items: { type: "string" },
+					description: "search: taxonomy classes or leaves, e.g. oracle_price or reentrancy.readonly (see status)",
+				},
+				severity: { type: "array", items: { type: "string", enum: ["critical", "high", "medium", "low", "info", "gas", "unknown"] } },
+				language: { type: "array", items: { type: "string" }, description: "search: e.g. Solidity, Rust, Vyper, Cairo, Move" },
+				project: { type: "string", description: "search: project name substring, for known-issue checks" },
+				limit: { type: "integer", minimum: 1, maximum: 100 },
+			},
+			required: ["action"],
+			additionalProperties: false,
+		},
+	},
 ];
 
 function flagValue(name, fallback) {
@@ -136,6 +159,18 @@ async function callTool(name, args) {
 		}
 		const result = await invokeCli(["evaluate", args.report, args.labels]);
 		return textResult(result.stdout || result.stderr, result.status !== 0);
+	}
+	if (name === "harness_corpus") {
+		if (args.action === "status" || args.action === "sync") {
+			const result = await invokeCli(["corpus", args.action]);
+			return textResult(result.stdout || result.stderr, result.status !== 0);
+		}
+		if (args.action === "search") {
+			const { action: _action, ...query } = args;
+			const result = await invokeCli(["corpus", "search", JSON.stringify(query)]);
+			return textResult(result.stdout || result.stderr, result.status !== 0);
+		}
+		return textResult("Usage: harness_corpus with action status, sync, or search.", true);
 	}
 	if (name === "harness_run") {
 		if (args.confirmed !== true) {

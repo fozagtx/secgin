@@ -60,7 +60,7 @@ test("plugin MCP lists harness tools and lists catalog models over stdio", async
 		const [init, listed, denied, models] = await collectLines(child, 4);
 		assert.equal(init.result.serverInfo.name, "secgin");
 		const names = listed.result.tools.map((tool) => tool.name);
-		assert.deepEqual(names, ["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"]);
+		assert.deepEqual(names, ["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate", "harness_corpus"]);
 		assert.equal(denied.result.isError, true);
 		assert.match(denied.result.content[0].text, /confirmed=true/);
 		assert.notEqual(models.result.isError, true);
@@ -89,7 +89,7 @@ test("plugin MCP serves the same tools over loopback Streamable HTTP", async () 
 		const body = await listed.json();
 		assert.deepEqual(
 			body.result.tools.map((tool) => tool.name),
-			["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate"],
+			["harness_models", "harness_plan", "harness_run", "harness_status", "harness_evaluate", "harness_corpus"],
 		);
 		const denied = await fetch(endpoint, {
 			method: "POST",

@@ -49,6 +49,7 @@ async function assertStdioTools(root) {
 			"harness_run",
 			"harness_status",
 			"harness_evaluate",
+			"harness_corpus",
 		]);
 	} finally {
 		child.kill("SIGTERM");

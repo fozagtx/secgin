@@ -260,7 +260,7 @@ try {
 	for (const line of lines) process.stdout.write(`Installed ${line}\n`);
 	for (const target of result.targets) printGenericWiring(target);
 	process.stdout.write(
-		"Restart the host. Skill: secgin. MCP: harness_models, harness_plan, harness_run, harness_status, harness_evaluate.\n",
+		"Restart the host. Skill: secgin. MCP: harness_models, harness_plan, harness_run, harness_status, harness_evaluate, harness_corpus.\n",
 	);
 	process.stdout.write(
 		"Hunt models come from YOUR scope.json, not from the host CLI. Set the provider keys the worker needs (MINIMAX_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY, or HARNESS_OPENAI_COMPAT_*).\n",
